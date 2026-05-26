@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tape Deck — Card Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Page ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background:
+        radial-gradient(ellipse at 50% 0%, #1a1208 0%, #0a0604 70%),
+        #0a0604;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+      font-family: 'Space Mono', monospace;
+      color: #e8d4a8;
+      gap: 36px;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.6rem;
+      letter-spacing: 0.22em;
+      color: #f0a020;
+      text-align: center;
+      text-shadow: 0 0 24px rgba(240,160,32,0.25);
+      padding-left: 0.22em; /* optical balance for the trailing letterspacing */
+    }
+
+    /* ─── Controls ─────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 880px;
+      width: 100%;
+      background: linear-gradient(180deg, #1a140c 0%, #14100a 100%);
+      border: 1px solid #2a2018;
+      border-radius: 8px;
+      padding: 22px 26px;
+      box-shadow: inset 0 1px 0 rgba(255,200,120,0.06);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 180px;
+    }
+    label {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #8a7456;
+    }
+    input[type="text"] {
+      background: #0e0a06;
+      border: 1px solid #2e2418;
+      border-radius: 4px;
+      color: #f0deb0;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      padding: 9px 11px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: #f0a020; }
+    .char-count { font-size: 0.6rem; color: #6a5840; text-align: right; letter-spacing: 0.1em; }
+    .char-count.warn { color: #e85d04; }
+
+    .color-swatches { display: flex; gap: 10px; align-items: center; padding-top: 2px; }
+    .swatch {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid transparent; cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      box-shadow: inset 0 -3px 6px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .swatch:hover { transform: scale(1.1); }
+    .swatch.active { border-color: #f0a020; transform: scale(1.15); }
+    .swatch.black  { background: radial-gradient(circle at 30% 30%, #3a3a3a, #1a1a1a 70%); }
+    .swatch.cream  { background: radial-gradient(circle at 30% 30%, #fff0c8, #d4b878 80%); }
+    .swatch.orange { background: radial-gradient(circle at 30% 30%, #ff7a20, #a83800 80%); }
+    .swatch.blue   { background: radial-gradient(circle at 30% 30%, #3a78ff, #0a1a55 80%); }
+
+    /* ─── Stage ────────────────────────────────────────────────── */
+    .card-stage {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 24px; width: 100%;
+    }
+    .card-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #5a4830;
+    }
+
+    .tab-bar {
+      display: flex; gap: 0;
+      border: 1px solid #2a2018; border-radius: 6px; overflow: hidden;
+      background: #14100a;
+    }
+    .tab {
+      padding: 8px 22px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem; letter-spacing: 0.12em;
+      cursor: pointer; background: transparent; color: #6a5840;
+      border: none; text-transform: uppercase;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab.active { background: #f0a020; color: #14100a; }
+    .tab:hover:not(.active) { color: #d4b878; }
+
+    .scale-note {
+      font-size: 0.58rem; color: #5a4830;
+      letter-spacing: 0.18em; text-align: center;
+      text-transform: uppercase;
+    }
+
+    /* ═════════════════════════════════════════════════════════════
+       THE CARD — 6" x 4" at 144dpi = 864 x 576
+       ═════════════════════════════════════════════════════════════ */
+    .card {
+      width: 864px; height: 576px;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow:
+        0 30px 60px -10px rgba(0,0,0,0.8),
+        0 18px 36px -18px rgba(0,0,0,0.9),
+        0 0 0 1px rgba(80,60,40,0.4);
+    }
+
+    /* ───────────────── CARD FRONT ─────────────────────────────── */
+    .card-front {
+      width: 100%; height: 100%;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      /* warm dark field — like aged matte board */
+      background:
+        radial-gradient(ellipse at 30% 20%, #2a1a0c 0%, transparent 55%),
+        radial-gradient(ellipse at 70% 80%, #1a0e06 0%, transparent 60%),
+        linear-gradient(135deg, #1c1208 0%, #120a04 100%);
+    }
+
+    /* heavy paper grain */
+    .card-front::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch' seed='5'/><feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.7  0 0 0 0 0.4  0 0 0 0.5 0'/></filter><rect width='400' height='400' filter='url(%23n)' opacity='0.35'/></svg>");
+      mix-blend-mode: overlay;
+      opacity: 0.7;
+      pointer-events: none;
+      z-index: 1;
+    }
+    /* coarser speckle layer */
+    .card-front::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.18' numOctaves='2' stitchTiles='stitch' seed='2'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='0.5'/></svg>");
+      mix-blend-mode: soft-light;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* die-cut inset frame + corner registration marks */
+    .front-frame {
+      position: absolute;
+      inset: 22px;
+      border: 1px dashed rgba(240,160,32,0.12);
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .reg-mark {
+      position: absolute;
+      width: 14px; height: 14px;
+      z-index: 3; pointer-events: none;
+      opacity: 0.35;
+    }
+    .reg-mark::before, .reg-mark::after {
+      content: '';
+      position: absolute; background: #6a4a20;
+    }
+    .reg-mark::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+    .reg-mark::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+    .reg-tl { top: 10px; left: 10px; }
+    .reg-tr { top: 10px; right: 10px; }
+    .reg-bl { bottom: 10px; left: 10px; }
+    .reg-br { bottom: 10px; right: 10px; }
+
+    .front-brand {
+      position: absolute;
+      bottom: 22px; left: 0; right: 0;
+      text-align: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.55em;
+      color: rgba(240,160,32,0.42);
+      z-index: 4;
+      padding-left: 0.55em;
+    }
+    .front-brand .dot {
+      display: inline-block; width: 4px; height: 4px;
+      background: rgba(240,160,32,0.42);
+      border-radius: 50%;
+      vertical-align: middle;
+      margin: 0 12px 3px;
+    }
+    .front-stock {
+      position: absolute;
+      top: 30px; left: 36px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.3em;
+      color: rgba(240,160,32,0.28);
+      z-index: 4;
+      text-transform: uppercase;
+    }
+    .front-cat {
+      position: absolute;
+      top: 30px; right: 36px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.3em;
+      color: rgba(240,160,32,0.28);
+      z-index: 4;
+      text-transform: uppercase;
+    }
+
+    /* ═════════════════════════════════════════════════════════════
+       CASSETTE
+       ═════════════════════════════════════════════════════════════ */
+    .cassette-wrap {
+      position: relative;
+      z-index: 5;
+      transform: rotate(-1.2deg);
+      filter: drop-shadow(0 18px 24px rgba(0,0,0,0.55))
+              drop-shadow(0 6px 8px rgba(0,0,0,0.45));
+    }
+
+    .cassette {
+      position: relative;
+      width: 540px;
+      height: 340px;
+      border-radius: 8px;
+      padding: 14px 22px 12px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0;
+
+      /* default: classic black */
+      --body: #1c1c1c;
+      --body-dark: #0a0a0a;
+      --body-light: #2e2e2e;
+      --body-shine: rgba(255,255,255,0.08);
+      --body-wear: rgba(255,220,160,0.05);
+      --shell-edge: #050505;
+      --label-bg: #f4e4bc;
+      --label-bg2: #ead49a;
+      --label-txt: #2a1810;
+      --label-stripe: #c64a08;
+      --label-stripe2: #1c1208;
+      --label-accent: #d97520;
+      --reel-bg: #2a2a2a;
+      --reel-hub: #4a4a4a;
+      --reel-teeth: #1a1a1a;
+      --screw-color: #2a2a2a;
+      --screw-dark: #0a0a0a;
+      --tape-color: #0c0604;
+      --tape-wound: #3a1a08;
+      --shell-text: rgba(255,200,140,0.12);
+      --hairline: rgba(0,0,0,0.6);
+
+      background:
+        /* highlight gradient */
+        linear-gradient(180deg,
+          rgba(255,255,255,0.10) 0%,
+          rgba(255,255,255,0.04) 4%,
+          transparent 8%,
+          transparent 92%,
+          rgba(0,0,0,0.25) 100%),
+        /* main body */
+        linear-gradient(170deg, var(--body-light) 0%, var(--body) 35%, var(--body-dark) 100%);
+
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -2px 0 rgba(0,0,0,0.6),
+        inset 1px 0 0 rgba(255,255,255,0.04),
+        inset -1px 0 0 rgba(0,0,0,0.5),
+        0 0 0 1px var(--shell-edge);
+    }
+
+    /* worn corner highlights — slight wear/scratches */
+    .cassette::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 8px;
+      background:
+        /* faint horizontal molding ribs left/right */
+        linear-gradient(90deg,
+          rgba(0,0,0,0.18) 0%,
+          rgba(0,0,0,0.06) 3%,
+          transparent 6%,
+          transparent 94%,
+          rgba(0,0,0,0.06) 97%,
+          rgba(0,0,0,0.22) 100%),
+        /* speckled wear */
+        radial-gradient(ellipse 80px 30px at 14% 20%, var(--body-wear) 0%, transparent 70%),
+        radial-gradient(ellipse 60px 20px at 88% 84%, var(--body-wear) 0%, transparent 70%),
+        radial-gradient(ellipse 40px 15px at 70% 12%, rgba(255,255,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    /* fine plastic noise texture on shell */
+    .cassette::after {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 8px;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='2' stitchTiles='stitch' seed='8'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.45'/></svg>");
+      mix-blend-mode: overlay;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    /* ─── Color variants ──────────────────────────────────────── */
+    .cassette.cream {
+      --body: #ebd6a6;
+      --body-dark: #b89860;
+      --body-light: #f4e2b8;
+      --body-shine: rgba(255,255,255,0.4);
+      --body-wear: rgba(120,70,20,0.18);
+      --shell-edge: #8a6830;
+      --label-bg: #fff8e0;
+      --label-bg2: #f4e8c0;
+      --label-txt: #2a1400;
+      --label-stripe: #8a3000;
+      --label-stripe2: #2a1400;
+      --label-accent: #c84a08;
+      --reel-bg: #b89860;
+      --reel-hub: #8a6830;
+      --reel-teeth: #6a4820;
+      --screw-color: #9a7838;
+      --screw-dark: #4a3010;
+      --tape-color: #1c0a04;
+      --tape-wound: #4a1c08;
+      --shell-text: rgba(80,40,10,0.35);
+      --hairline: rgba(80,40,10,0.45);
+    }
+
+    .cassette.orange {
+      --body: #c64a08;
+      --body-dark: #6a2400;
+      --body-light: #e85d04;
+      --body-shine: rgba(255,230,180,0.3);
+      --body-wear: rgba(40,16,4,0.25);
+      --shell-edge: #4a1800;
+      --label-bg: #fff4e0;
+      --label-bg2: #f4dcb0;
+      --label-txt: #2a0800;
+      --label-stripe: #2a0800;
+      --label-stripe2: #f0a020;
+      --label-accent: #c64a08;
+      --reel-bg: #4a1800;
+      --reel-hub: #6a2400;
+      --reel-teeth: #2a0800;
+      --screw-color: #6a2400;
+      --screw-dark: #2a0800;
+      --tape-color: #0c0604;
+      --tape-wound: #3a1a08;
+      --shell-text: rgba(255,220,160,0.22);
+      --hairline: rgba(0,0,0,0.4);
+    }
+
+    .cassette.blue {
+      --body: #1a3a7a;
+      --body-dark: #0a1840;
+      --body-light: #2a5aa8;
+      --body-shine: rgba(200,220,255,0.25);
+      --body-wear: rgba(180,200,255,0.08);
+      --shell-edge: #050d28;
+      --label-bg: #f0f0e8;
+      --label-bg2: #d8d8c8;
+      --label-txt: #0a1428;
+      --label-stripe: #0a1428;
+      --label-stripe2: #d4500c;
+      --label-accent: #d4500c;
+      --reel-bg: #0a1840;
+      --reel-hub: #1a3a7a;
+      --reel-teeth: #050d28;
+      --screw-color: #0e2255;
+      --screw-dark: #050d28;
+      --tape-color: #050818;
+      --tape-wound: #1a1a1a;
+      --shell-text: rgba(200,220,255,0.18);
+      --hairline: rgba(0,0,0,0.5);
+    }
+
+    /* ─── Top strip (write-protect notches + corner screws) ───── */
+    .cassette-top {
+      position: relative;
+      width: 100%;
+      height: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    /* write-protect notches — corner indents */
+    .cassette-top::before, .cassette-top::after {
+      content: '';
+      position: absolute; top: -2px;
+      width: 22px; height: 8px;
+      background: var(--shell-edge);
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 1px 1px rgba(0,0,0,0.6);
+      border-radius: 0 0 2px 2px;
+    }
+    .cassette-top::before { left: 38px; }
+    .cassette-top::after  { right: 38px; }
+
+    /* small molded label on top: brand */
+    .shell-brand-top {
+      position: absolute;
+      top: 1px; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.55rem;
+      letter-spacing: 0.4em;
+      color: var(--shell-text);
+      padding-left: 0.4em;
+    }
+
+    /* ─── Screws ──────────────────────────────────────────────── */
+    .screw {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, var(--screw-color) 0%, var(--screw-dark) 80%);
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.15),
+        inset 0 -1px 1px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(0,0,0,0.4);
+      position: relative;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .screw::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 18%; right: 18%;
+      height: 1.5px;
+      background: rgba(0,0,0,0.7);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.1);
+      transform: translateY(-50%) rotate(38deg);
+      border-radius: 1px;
+    }
+
+    /* ─── Label ──────────────────────────────────────────────── */
+    .cassette-label-well {
+      width: calc(100% - 32px);
+      padding: 4px;
+      margin: 6px 0 4px;
+      background: var(--shell-edge);
+      border-radius: 4px;
+      box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.7),
+        inset 0 -1px 1px rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+
+    .cassette-label {
+      width: 100%;
+      height: 86px;
+      background:
+        /* coffee stain wear */
+        radial-gradient(ellipse 30px 12px at 92% 88%, rgba(140,80,30,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 18px 8px at 8% 92%, rgba(80,40,10,0.08) 0%, transparent 70%),
+        /* paper */
+        linear-gradient(180deg, var(--label-bg) 0%, var(--label-bg2) 100%);
+      border-radius: 2px;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      transform: rotate(0.3deg);
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,0.08),
+        0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    /* paper texture on label */
+    .cassette-label::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch' seed='3'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.5'/></svg>");
+      mix-blend-mode: multiply;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+    /* worn edge fade */
+    .cassette-label::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(120,70,30,0.18) 100%);
+      pointer-events: none;
+    }
+
+    /* top header band: brand + side */
+    .label-header {
+      height: 18px;
+      background: var(--label-stripe);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+      position: relative;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    }
+    .label-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.26em;
+      color: var(--label-bg);
+      padding-left: 0.26em;
+      mix-blend-mode: screen;
+      white-space: nowrap;
+    }
+    .label-brand .sep {
+      display: inline-block;
+      margin: 0 0.5em;
+      opacity: 0.7;
+    }
+    .label-cat {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.16em;
+      color: var(--label-bg);
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    /* hero title area */
+    .label-body {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 4px 18px 2px;
+      position: relative;
+      gap: 1px;
+    }
+
+    .label-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.85rem;
+      letter-spacing: 0.06em;
+      color: var(--label-txt);
+      text-align: center;
+      line-height: 1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-left: 0.06em;
+      /* print misregistration — slight orange offset for that warm imperfect feel */
+      text-shadow:
+        0.6px 0.6px 0 var(--label-accent),
+        -0.4px -0.4px 0 rgba(180,40,80,0.08);
+      position: relative;
+      z-index: 2;
+    }
+
+    .label-sub {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.18em;
+      color: var(--label-stripe);
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-top: 1px;
+    }
+    .label-sub .bullet {
+      display: inline-block; width: 3px; height: 3px;
+      background: currentColor; border-radius: 50%;
+      opacity: 0.7;
+    }
+    .label-sub .star {
+      color: var(--label-accent);
+      font-size: 0.6rem;
+      line-height: 1;
+    }
+
+    /* bottom stripe — thinner ticked band */
+    .label-footer {
+      height: 8px;
+      background:
+        repeating-linear-gradient(90deg,
+          var(--label-stripe2) 0px,
+          var(--label-stripe2) 6px,
+          var(--label-bg2) 6px,
+          var(--label-bg2) 8px);
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    /* ─── Window ─────────────────────────────────────────────── */
+    .cassette-window {
+      width: calc(100% - 36px);
+      height: 142px;
+      background:
+        /* tape head opening shadow */
+        radial-gradient(ellipse 220px 60px at 50% 100%, rgba(0,0,0,0.6) 0%, transparent 70%),
+        var(--tape-color);
+      border-radius: 4px;
+      position: relative;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 30px;
+      box-shadow:
+        inset 0 3px 8px rgba(0,0,0,0.85),
+        inset 0 -1px 2px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    /* subtle plastic reflection inside window */
+    .cassette-window::before {
+      content: '';
+      position: absolute;
+      top: 6px; left: 8px; right: 50%;
+      height: 14px;
+      background: linear-gradient(120deg,
+        rgba(255,255,255,0.06) 0%,
+        rgba(255,255,255,0.03) 50%,
+        transparent 100%);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    /* visible tape strand across the bottom */
+    .cassette-window::after {
+      content: '';
+      position: absolute;
+      bottom: 26px;
+      left: 70px; right: 70px;
+      height: 5px;
+      background: linear-gradient(to right,
+        transparent 0%,
+        rgba(80,40,10,0.65) 5%,
+        var(--tape-wound) 50%,
+        rgba(80,40,10,0.65) 95%,
+        transparent 100%);
+      border-radius: 1px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    }
+
+    /* tape head capstan slot — molded into bottom of window */
+    .head-slot {
+      position: absolute;
+      bottom: 6px; left: 50%;
+      transform: translateX(-50%);
+      width: 110px; height: 12px;
+      border-radius: 2px;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 100%);
+      box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.8),
+        inset 0 -1px 0 rgba(255,255,255,0.04);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 8px;
+    }
+    .head-pin {
+      width: 3px; height: 6px;
+      background: linear-gradient(180deg, #888 0%, #2a2a2a 100%);
+      border-radius: 1px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.6);
+    }
+    .head-pin.wide {
+      width: 8px; height: 4px;
+      background: linear-gradient(180deg, #aaa 0%, #444 100%);
+      border-radius: 1px;
+    }
+
+    /* ─── Reels ──────────────────────────────────────────────── */
+    .reel {
+      width: 92px; height: 92px;
+      border-radius: 50%;
+      background:
+        /* wound tape ring */
+        radial-gradient(circle at 50% 50%,
+          var(--reel-hub) 0%,
+          var(--reel-hub) 18%,
+          var(--reel-bg) 19%,
+          var(--reel-bg) 26%,
+          var(--tape-wound) 27%,
+          #1a0c04 80%,
+          var(--reel-teeth) 81%,
+          var(--reel-teeth) 100%);
+      position: relative;
+      box-shadow:
+        0 0 0 1.5px rgba(0,0,0,0.7),
+        inset 0 2px 4px rgba(0,0,0,0.3),
+        inset 0 -2px 3px rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* tape spiral lines — concentric circles for wound-tape texture */
+    .reel::before {
+      content: '';
+      position: absolute; inset: 24%;
+      border-radius: 50%;
+      background:
+        repeating-radial-gradient(circle at 50% 50%,
+          transparent 0px,
+          transparent 2px,
+          rgba(0,0,0,0.18) 2px,
+          rgba(0,0,0,0.18) 3px);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    /* outer teeth ring — molded gear edge */
+    .reel::after {
+      content: '';
+      position: absolute; inset: 2px;
+      border-radius: 50%;
+      background:
+        repeating-conic-gradient(from 0deg,
+          rgba(0,0,0,0.0) 0deg,
+          rgba(0,0,0,0.0) 8deg,
+          rgba(0,0,0,0.45) 8deg,
+          rgba(0,0,0,0.45) 10deg);
+      mask: radial-gradient(circle, transparent 78%, #000 79%, #000 100%);
+      -webkit-mask: radial-gradient(circle, transparent 78%, #000 79%, #000 100%);
+      pointer-events: none;
+    }
+
+    /* hub */
+    .reel-hub {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, var(--reel-hub) 0%, var(--reel-teeth) 100%);
+      box-shadow:
+        inset 0 1px 2px rgba(255,255,255,0.15),
+        inset 0 -2px 3px rgba(0,0,0,0.5),
+        0 0 0 2px rgba(0,0,0,0.5);
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2;
+    }
+    /* hub teeth (6 sprocket prongs) */
+    .reel-hub::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        conic-gradient(from 0deg,
+          var(--reel-teeth) 0deg 6deg, transparent 6deg 60deg,
+          var(--reel-teeth) 60deg 66deg, transparent 66deg 120deg,
+          var(--reel-teeth) 120deg 126deg, transparent 126deg 180deg,
+          var(--reel-teeth) 180deg 186deg, transparent 186deg 240deg,
+          var(--reel-teeth) 240deg 246deg, transparent 246deg 300deg,
+          var(--reel-teeth) 300deg 306deg, transparent 306deg 360deg);
+      border-radius: 50%;
+      mask: radial-gradient(circle, #000 0%, #000 35%, transparent 36%);
+      -webkit-mask: radial-gradient(circle, #000 0%, #000 35%, transparent 36%);
+    }
+    /* hub center hole */
+    .reel-hub::after {
+      content: '';
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: var(--tape-color);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.9);
+      position: relative;
+      z-index: 3;
+    }
+
+    /* ─── Bottom strip ───────────────────────────────────────── */
+    .cassette-bottom {
+      width: 100%;
+      height: 32px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 4px 0;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .bottom-side {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pin-cluster {
+      display: flex; gap: 6px; align-items: center;
+      justify-content: center;
+      padding: 4px 14px;
+      border-radius: 3px;
+      background: var(--shell-edge);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .pin-hole {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      box-shadow: inset 0 0 1px rgba(0,0,0,0.9);
+    }
+    .pin-hole.big {
+      width: 7px; height: 7px;
+    }
+
+    .shell-spec {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      color: var(--shell-text);
+      text-transform: uppercase;
+      white-space: nowrap;
+      text-align: right;
+      line-height: 1.3;
+    }
+    .shell-spec-left {
+      text-align: left;
+    }
+
+    /* ═════════════════════════════════════════════════════════════
+       CARD BACK
+       ═════════════════════════════════════════════════════════════ */
+    .card-back {
+      width: 100%; height: 100%;
+      position: relative;
+      display: flex;
+      background:
+        radial-gradient(ellipse at 50% 50%, #fdf6e5 0%, #f4ebd5 100%);
+    }
+
+    /* paper grain */
+    .card-back::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch' seed='4'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.3  0 0 0 0 0.15  0 0 0 0.6 0'/></filter><rect width='300' height='300' filter='url(%23n)' opacity='0.4'/></svg>");
+      mix-blend-mode: multiply;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    /* central divider */
+    .card-back::after {
+      content: '';
+      position: absolute;
+      top: 50px; bottom: 50px;
+      left: 50%;
+      width: 1px;
+      background: repeating-linear-gradient(180deg, #b89860 0px, #b89860 2px, transparent 2px, transparent 5px);
+      opacity: 0.5;
+    }
+
+    /* postcard masthead */
+    .postcard-masthead {
+      position: absolute;
+      top: 18px; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.42em;
+      color: #8a6830;
+      padding-left: 0.42em;
+      z-index: 2;
+    }
+    .postcard-masthead .dot {
+      display: inline-block; width: 3px; height: 3px;
+      background: #c64a08; border-radius: 50%;
+      vertical-align: middle; margin: 0 10px 3px;
+    }
+
+    /* ─── Left half ─────────────────────────────────────────── */
+    .card-back-left {
+      width: 50%;
+      padding: 50px 30px 28px;
+      display: flex; flex-direction: column;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .qr-area {
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+
+    .qr-placeholder {
+      width: 108px; height: 108px;
+      border: 1.5px solid #2a1810;
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      background: #fffaee;
+      position: relative;
+      overflow: hidden;
+      padding: 6px;
+    }
+    .qr-placeholder::before {
+      content: '';
+      width: 100%; height: 100%;
+      background-image:
+        repeating-linear-gradient(0deg, #2a1810 0px, #2a1810 4px, transparent 4px, transparent 8px),
+        repeating-linear-gradient(90deg, #2a1810 0px, #2a1810 4px, transparent 4px, transparent 8px);
+      opacity: 0.85;
+    }
+    /* QR finder patterns */
+    .qr-placeholder::after {
+      content: '';
+      position: absolute;
+      top: 6px; left: 6px;
+      width: 22px; height: 22px;
+      background:
+        linear-gradient(#2a1810, #2a1810) center/8px 8px no-repeat,
+        #fffaee;
+      border: 4px solid #2a1810;
+      box-shadow:
+        62px 0 0 -4px #fffaee,
+        62px 0 0 0 #2a1810,
+        62px 0 0 -10px #2a1810,
+        0 62px 0 -4px #fffaee,
+        0 62px 0 0 #2a1810,
+        0 62px 0 -10px #2a1810;
+    }
+
+    .qr-meta {
+      display: flex; flex-direction: column;
+      gap: 4px; padding-top: 2px;
+      flex: 1;
+    }
+    .scan-arrow {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.65rem;
+      color: #c64a08;
+      letter-spacing: 0.2em;
+      padding-left: 0.2em;
+    }
+    .scan-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.55rem;
+      letter-spacing: 0.06em;
+      color: #2a1810;
+      line-height: 0.95;
+      padding-left: 0.06em;
+    }
+    .scan-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      color: #5a4830;
+      letter-spacing: 0.06em;
+      line-height: 1.6;
+      margin-top: 4px;
+    }
+
+    .message-area {
+      flex: 1;
+      display: flex; flex-direction: column;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-bottom: 4px;
+    }
+    .message-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.22em;
+      color: #8a6830;
+      text-transform: uppercase;
+    }
+    .message-lines {
+      display: flex; flex-direction: column;
+      gap: 14px;
+    }
+    .message-line {
+      height: 1px;
+      background: repeating-linear-gradient(90deg, #b89860 0px, #b89860 4px, transparent 4px, transparent 8px);
+      opacity: 0.45;
+    }
+
+    .made-with {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      color: #8a6830;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding-top: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .made-with::before {
+      content: '';
+      flex: 1; height: 1px;
+      background: #c8b080;
+      max-width: 36px;
+    }
+
+    /* ─── Right half ────────────────────────────────────────── */
+    .card-back-right {
+      width: 50%;
+      padding: 50px 32px 30px;
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stamp-area {
+      align-self: flex-end;
+      width: 68px; height: 84px;
+      border: 1.5px dashed #b89860;
+      border-radius: 2px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      background:
+        radial-gradient(circle, transparent 60%, rgba(184,152,96,0.08) 100%);
+    }
+    .stamp-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.42rem;
+      color: #a88848;
+      letter-spacing: 0.1em;
+      text-align: center;
+      line-height: 1.7;
+      text-transform: uppercase;
+    }
+
+    .return-block {
+      margin-top: 14px;
+    }
+    .return-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.45rem;
+      letter-spacing: 0.22em;
+      color: #a88848;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .return-address {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      color: #6a5236;
+      line-height: 1.7;
+    }
+
+    .recipient-block {
+      padding: 12px 14px;
+      border-left: 3px solid #c64a08;
+      margin-left: 18px;
+    }
+    .to-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.22em;
+      color: #c64a08;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .recipient-name {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.95rem;
+      color: #1c1208;
+      letter-spacing: 0.01em;
+      margin-bottom: 3px;
+    }
+    .recipient-address {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: #2a1810;
+      line-height: 1.7;
+    }
+
+    /* postal cancellation mark — adds character */
+    .cancel-mark {
+      position: absolute;
+      top: 28px; right: 22px;
+      width: 86px; height: 86px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(198,74,8,0.35);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      transform: rotate(-12deg);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .cancel-mark::before {
+      content: '';
+      position: absolute; inset: 5px;
+      border-radius: 50%;
+      border: 1px dashed rgba(198,74,8,0.4);
+    }
+    .cancel-mark .top {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      color: rgba(198,74,8,0.7);
+      padding-left: 0.18em;
+    }
+    .cancel-mark .mid {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+      color: rgba(198,74,8,0.75);
+      padding-left: 0.04em;
+      line-height: 1;
+      margin: 2px 0;
+    }
+    .cancel-mark .bot {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.4rem;
+      letter-spacing: 0.1em;
+      color: rgba(198,74,8,0.6);
+      text-transform: uppercase;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h1>Tape Deck</h1>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="control-group">
+      <label>Cassette Label</label>
+      <input type="text" id="labelInput" maxlength="40" value="Summer 2026 for Jake" placeholder="Your tape name…">
+      <div class="char-count" id="charCount">20 / 40</div>
+    </div>
+
+    <div class="control-group">
+      <label>Recipient Name</label>
+      <input type="text" id="recipientName" value="Jake Morrison" placeholder="Full name">
+    </div>
+
+    <div class="control-group">
+      <label>Cassette Color</label>
+      <div class="color-swatches">
+        <div class="swatch black active" data-color="black" title="Classic Black"></div>
+        <div class="swatch cream" data-color="cream" title="Cream"></div>
+        <div class="swatch orange" data-color="orange" title="Orange"></div>
+        <div class="swatch blue" data-color="blue" title="Blue"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab active" data-side="front">Front</button>
+    <button class="tab" data-side="back">Back</button>
+  </div>
+
+  <!-- Card stage -->
+  <div class="card-stage">
+    <div class="card-label">6" × 4" Postcard — Print Preview</div>
+
+    <!-- FRONT -->
+    <div class="card" id="cardFront">
+      <div class="card-front">
+
+        <div class="front-frame"></div>
+        <div class="reg-mark reg-tl"></div>
+        <div class="reg-mark reg-tr"></div>
+        <div class="reg-mark reg-bl"></div>
+        <div class="reg-mark reg-br"></div>
+
+        <div class="front-stock">CHROME · TYPE II</div>
+        <div class="front-cat">TD–0420</div>
+
+        <div class="cassette-wrap">
+          <div class="cassette" id="cassette">
+
+            <div class="cassette-top">
+              <div class="screw"></div>
+              <div class="shell-brand-top">TAPE DECK</div>
+              <div class="screw"></div>
+            </div>
+
+            <div class="cassette-label-well">
+              <div class="cassette-label">
+                <div class="label-header">
+                  <div class="label-brand">TAPE<span class="sep">·</span>DECK</div>
+                  <div class="label-cat">C–90 · NO. 0420</div>
+                </div>
+                <div class="label-body">
+                  <div class="label-title" id="labelText">Summer 2026 for Jake</div>
+                  <div class="label-sub">
+                    <span>Side A</span>
+                    <span class="bullet"></span>
+                    <span>90 Min</span>
+                    <span class="bullet"></span>
+                    <span class="star">★</span>
+                    <span>Hi-Fi</span>
+                  </div>
+                </div>
+                <div class="label-footer"></div>
+              </div>
+            </div>
+
+            <div class="cassette-window">
+              <div class="reel">
+                <div class="reel-hub"></div>
+              </div>
+              <div class="reel">
+                <div class="reel-hub"></div>
+              </div>
+              <div class="head-slot">
+                <div class="head-pin"></div>
+                <div class="head-pin wide"></div>
+                <div class="head-pin wide"></div>
+                <div class="head-pin"></div>
+              </div>
+            </div>
+
+            <div class="cassette-bottom">
+              <div class="bottom-side">
+                <div class="screw"></div>
+                <div class="shell-spec shell-spec-left">Stereo<br>Dolby&nbsp;B&nbsp;NR</div>
+              </div>
+              <div class="pin-cluster">
+                <div class="pin-hole"></div>
+                <div class="pin-hole big"></div>
+                <div class="pin-hole"></div>
+                <div class="pin-hole big"></div>
+                <div class="pin-hole"></div>
+              </div>
+              <div class="bottom-side">
+                <div class="shell-spec">Made for<br>you · ♥</div>
+                <div class="screw"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="front-brand">
+          TAPE<span class="dot"></span>DECK
+        </div>
+      </div>
+    </div>
+
+    <!-- BACK -->
+    <div class="card" id="cardBack" style="display:none;">
+      <div class="card-back">
+
+        <div class="postcard-masthead">
+          POSTCARD<span class="dot"></span>TAPE DECK<span class="dot"></span>PLAY ME
+        </div>
+
+        <div class="card-back-left">
+          <div class="qr-area">
+            <div class="qr-placeholder" id="qrBox"></div>
+            <div class="qr-meta">
+              <div class="scan-arrow">▶ SCAN</div>
+              <div class="scan-label">to Play<br>the Tape</div>
+              <div class="scan-sub">Opens your playlist<br>on YouTube</div>
+            </div>
+          </div>
+
+          <div class="message-area">
+            <div class="message-label">A note for you ↓</div>
+            <div class="message-lines">
+              <div class="message-line"></div>
+              <div class="message-line"></div>
+              <div class="message-line"></div>
+              <div class="message-line"></div>
+            </div>
+          </div>
+
+          <div class="made-with">Pressed with care by Tape Deck</div>
+        </div>
+
+        <div class="card-back-right">
+          <div class="cancel-mark">
+            <div class="top">TAPE DECK</div>
+            <div class="mid">2026</div>
+            <div class="bot">Side A · Play</div>
+          </div>
+
+          <div>
+            <div class="stamp-area">
+              <div class="stamp-label">Place<br>Stamp<br>Here</div>
+            </div>
+            <div class="return-block">
+              <div class="return-label">From</div>
+              <div class="return-address">
+                Tape Deck<br>
+                123 Cassette Lane<br>
+                San Francisco, CA 94107
+              </div>
+            </div>
+          </div>
+
+          <div class="recipient-block">
+            <div class="to-label">▶ Deliver to</div>
+            <div class="recipient-name" id="recipientNameDisplay">Jake Morrison</div>
+            <div class="recipient-address">
+              456 Main Street<br>
+              Apt 3B<br>
+              Brooklyn, NY 11201
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="scale-note">Rendered at 144dpi equivalent · Actual print is 300dpi</div>
+  </div>
+
+  <script>
+    const labelInput = document.getElementById('labelInput');
+    const labelText  = document.getElementById('labelText');
+    const charCount  = document.getElementById('charCount');
+    const cassette   = document.getElementById('cassette');
+    const recipientNameInput   = document.getElementById('recipientName');
+    const recipientNameDisplay = document.getElementById('recipientNameDisplay');
+    const cardFront  = document.getElementById('cardFront');
+    const cardBack   = document.getElementById('cardBack');
+
+    function fitLabelTitle() {
+      // shrink Bebas Neue if the text gets long, so it still reads as printed-on-label
+      const len = labelText.textContent.length;
+      let size = 1.85;
+      if (len > 18) size = 1.6;
+      if (len > 24) size = 1.35;
+      if (len > 32) size = 1.15;
+      labelText.style.fontSize = size + 'rem';
+    }
+
+    labelInput.addEventListener('input', () => {
+      const val = labelInput.value || 'Your Tape';
+      labelText.textContent = val;
+      const len = labelInput.value.length;
+      charCount.textContent = `${len} / 40`;
+      charCount.classList.toggle('warn', len > 32);
+      fitLabelTitle();
+    });
+    fitLabelTitle();
+
+    recipientNameInput.addEventListener('input', () => {
+      recipientNameDisplay.textContent = recipientNameInput.value || 'Recipient Name';
+    });
+
+    document.querySelectorAll('.swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+        cassette.className = `cassette ${swatch.dataset.color}`;
+      });
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const side = tab.dataset.side;
+        cardFront.style.display = side === 'front' ? 'block' : 'none';
+        cardBack.style.display  = side === 'back'  ? 'block' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

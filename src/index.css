@@ -1,0 +1,36 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0e0e0e;
+  --surface: #1a1a1a;
+  --border: #2a2a2a;
+  --border-mid: #333;
+  --text: #f0e0c0;
+  --text-muted: #666;
+  --text-dim: #444;
+  --accent: #f0a020;
+  --accent-dark: #c07a00;
+  --danger: #e85d04;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, textarea, select {
+  font-family: 'Space Mono', monospace;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+}

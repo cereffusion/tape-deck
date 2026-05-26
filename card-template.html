@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tape Deck — Card Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo+Black&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Page ───────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px;
+      font-family: 'Space Mono', monospace;
+      color: #f0e0c0;
+      gap: 48px;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 0.12em;
+      color: #f0a020;
+      text-align: center;
+    }
+
+    /* ─── Controls ───────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      max-width: 860px;
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px 24px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    label {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    input[type="text"] {
+      background: #222;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #f0e0c0;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: #f0a020; }
+
+    .char-count {
+      font-size: 0.65rem;
+      color: #555;
+      text-align: right;
+    }
+    .char-count.warn { color: #e85d04; }
+
+    .color-swatches {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding-top: 2px;
+    }
+
+    .swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .swatch:hover { transform: scale(1.1); }
+    .swatch.active { border-color: #f0a020; transform: scale(1.15); }
+    .swatch.black  { background: #222; }
+    .swatch.cream  { background: #f0deb0; }
+    .swatch.orange { background: #e85d04; }
+    .swatch.blue   { background: #2563eb; }
+
+    /* ─── Card stage ─────────────────────────────────────────── */
+    .card-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      width: 100%;
+    }
+
+    .card-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    /* ─── The Card ───────────────────────────────────────────── */
+    /* 6" x 4" at 144dpi = 864 x 576px */
+    .card {
+      width: 864px;
+      height: 576px;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px #333;
+    }
+
+    /* ─────────────────── CARD FRONT ──────────────────────────── */
+    .card-front {
+      width: 100%;
+      height: 100%;
+      background: #0e0e0e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 32px;
+    }
+
+    /* subtle grain texture */
+    .card-front::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+      pointer-events: none;
+      opacity: 0.4;
+      z-index: 10;
+    }
+
+    .branding {
+      position: absolute;
+      bottom: 18px;
+      right: 22px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      color: #333;
+      z-index: 5;
+    }
+
+    /* ─── Cassette Shell ─────────────────────────────────────── */
+    .cassette {
+      position: relative;
+      width: 520px;
+      height: 330px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 20px 10px;
+      gap: 0;
+
+      /* default: black */
+      --body: #1e1e1e;
+      --body-dark: #111;
+      --body-mid: #2a2a2a;
+      --shell-edge: #0a0a0a;
+      --label-bg: #f0e0c0;
+      --label-txt: #111;
+      --label-stripe: #e85d04;
+      --label-stripe2: #111;
+      --reel-bg: #333;
+      --reel-hub: #555;
+      --screw-color: #333;
+      --tape-color: #1a0a00;
+
+      background: var(--body);
+      box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.06),
+        inset 0 -2px 0 rgba(0,0,0,0.5),
+        0 8px 32px rgba(0,0,0,0.6),
+        0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    /* color variants */
+    .cassette.cream {
+      --body: #f0deb0;
+      --body-dark: #d4c090;
+      --body-mid: #e8d0a0;
+      --shell-edge: #c4a870;
+      --label-bg: #fffbf0;
+      --label-txt: #2a1800;
+      --label-stripe: #8b4a00;
+      --label-stripe2: #f0a020;
+      --reel-bg: #c4a870;
+      --reel-hub: #a08848;
+      --screw-color: #b09060;
+      --tape-color: #1a0a00;
+    }
+
+    .cassette.orange {
+      --body: #c94a00;
+      --body-dark: #a03800;
+      --body-mid: #d85800;
+      --shell-edge: #802800;
+      --label-bg: #fff8f0;
+      --label-txt: #2a0800;
+      --label-stripe: #ff6a00;
+      --label-stripe2: #802800;
+      --reel-bg: #802800;
+      --reel-hub: #a03800;
+      --screw-color: #a03800;
+      --tape-color: #1a0a00;
+    }
+
+    .cassette.blue {
+      --body: #1a3a7a;
+      --body-dark: #0e2255;
+      --body-mid: #204494;
+      --shell-edge: #0a1840;
+      --label-bg: #f0f4ff;
+      --label-txt: #0a1840;
+      --label-stripe: #2563eb;
+      --label-stripe2: #0a1840;
+      --reel-bg: #0e2255;
+      --reel-hub: #1a3a7a;
+      --screw-color: #1a3a7a;
+      --tape-color: #050d1a;
+    }
+
+    /* ─── Top strip ──────────────────────────────────────────── */
+    .cassette-top {
+      width: 100%;
+      height: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Screws ─────────────────────────────────────────────── */
+    .screw {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--screw-color);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), inset 1px 0 2px rgba(0,0,0,0.3);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .screw::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 15%;
+      right: 15%;
+      height: 1.5px;
+      background: rgba(0,0,0,0.4);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    /* ─── Label ──────────────────────────────────────────────── */
+    .cassette-label {
+      width: calc(100% - 48px);
+      height: 90px;
+      background: var(--label-bg);
+      border-radius: 5px;
+      margin: 6px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+
+    .label-stripe {
+      height: 9px;
+      background: linear-gradient(
+        to right,
+        var(--label-stripe) 0%,
+        var(--label-stripe) 50%,
+        var(--label-stripe2) 50%,
+        var(--label-stripe2) 100%
+      );
+    }
+
+    .label-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 16px;
+      gap: 2px;
+    }
+
+    .label-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.55rem;
+      letter-spacing: 0.08em;
+      color: var(--label-txt);
+      text-align: center;
+      line-height: 1.1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .label-side-a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.15em;
+      color: var(--label-stripe);
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .label-stripe-bottom {
+      height: 6px;
+      background: var(--label-stripe);
+      opacity: 0.6;
+    }
+
+    /* ─── Window ─────────────────────────────────────────────── */
+    .cassette-window {
+      width: calc(100% - 48px);
+      height: 148px;
+      background: var(--tape-color);
+      border-radius: 6px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      box-shadow:
+        inset 0 2px 6px rgba(0,0,0,0.8),
+        inset 0 -1px 3px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    /* tape strand across the bottom of the window */
+    .cassette-window::after {
+      content: '';
+      position: absolute;
+      bottom: 24px;
+      left: 44px;
+      right: 44px;
+      height: 4px;
+      background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(80,40,10,0.6) 10%,
+        rgba(80,40,10,0.8) 50%,
+        rgba(80,40,10,0.6) 90%,
+        transparent 100%
+      );
+      border-radius: 2px;
+    }
+
+    /* tape guide pin holes */
+    .cassette-window::before {
+      content: '';
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 10px;
+      border-radius: 5px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    /* ─── Reels ──────────────────────────────────────────────── */
+    .reel {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: var(--reel-bg);
+      position: relative;
+      box-shadow:
+        0 0 0 2px rgba(0,0,0,0.6),
+        inset 0 2px 4px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* outer teeth ring */
+    .reel::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      border: 2px dashed rgba(0,0,0,0.25);
+    }
+
+    /* hub */
+    .reel-hub {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--reel-hub);
+      box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.4),
+        0 0 0 4px rgba(0,0,0,0.2);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* hub center hole */
+    .reel-hub::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--tape-color);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    /* spokes */
+    .reel-spokes {
+      position: absolute;
+      inset: 0;
+    }
+    .reel-spokes::before,
+    .reel-spokes::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: rgba(0,0,0,0.25);
+      transform-origin: left center;
+    }
+    .reel-spokes::before { transform: translate(-50%,-50%) rotate(30deg); }
+    .reel-spokes::after  { transform: translate(-50%,-50%) rotate(120deg); }
+
+    /* ─── Bottom strip ───────────────────────────────────────── */
+    .cassette-bottom {
+      width: 100%;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    .guide-pin {
+      width: 18px;
+      height: 8px;
+      background: var(--body-dark);
+      border-radius: 2px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .type-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.12);
+      text-transform: uppercase;
+    }
+
+    /* ─────────────────── CARD BACK ───────────────────────────── */
+    .card-back {
+      width: 100%;
+      height: 100%;
+      background: #faf6ef;
+      display: flex;
+      position: relative;
+    }
+
+    /* dividing line */
+    .card-back::after {
+      content: '';
+      position: absolute;
+      top: 40px;
+      bottom: 40px;
+      left: 50%;
+      width: 1px;
+      background: #ddd;
+    }
+
+    /* ─── Left half: QR + message ────────────────────────────── */
+    .card-back-left {
+      width: 50%;
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .qr-area {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .qr-placeholder {
+      width: 110px;
+      height: 110px;
+      border: 2px solid #222;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    /* fake QR pattern for preview */
+    .qr-placeholder::before {
+      content: '';
+      width: 90px;
+      height: 90px;
+      background-image:
+        repeating-linear-gradient(0deg, #222 0px, #222 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(90deg, #222 0px, #222 6px, transparent 6px, transparent 12px);
+      opacity: 0.8;
+    }
+
+    .qr-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 4px;
+    }
+
+    .scan-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.08em;
+      color: #111;
+      line-height: 1;
+    }
+
+    .scan-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.52rem;
+      color: #555;
+      letter-spacing: 0.08em;
+      line-height: 1.5;
+    }
+
+    .message-lines {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .message-line {
+      height: 1px;
+      background: #ccc;
+    }
+
+    .made-with {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      color: #bbb;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding-top: 8px;
+    }
+
+    /* ─── Right half: address ────────────────────────────────── */
+    .card-back-right {
+      width: 50%;
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stamp-area {
+      align-self: flex-end;
+      width: 60px;
+      height: 72px;
+      border: 1.5px dashed #bbb;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stamp-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.42rem;
+      color: #bbb;
+      letter-spacing: 0.08em;
+      text-align: center;
+      line-height: 1.6;
+      text-transform: uppercase;
+    }
+
+    .return-address {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.52rem;
+      color: #888;
+      line-height: 1.7;
+    }
+
+    .recipient-address {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: #111;
+      line-height: 1.8;
+    }
+
+    .recipient-name {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.85rem;
+      color: #111;
+      margin-bottom: 2px;
+    }
+
+    /* ─── Scale toggle ───────────────────────────────────────── */
+    .scale-note {
+      font-size: 0.6rem;
+      color: #444;
+      letter-spacing: 0.12em;
+      text-align: center;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .tab {
+      padding: 8px 20px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      background: #1a1a1a;
+      color: #666;
+      border: none;
+      text-transform: uppercase;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab.active {
+      background: #f0a020;
+      color: #111;
+    }
+    .tab:hover:not(.active) { background: #222; color: #aaa; }
+  </style>
+</head>
+<body>
+
+  <h1>Tape Deck</h1>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="control-group">
+      <label>Cassette Label</label>
+      <input type="text" id="labelInput" maxlength="40" value="Summer 2025 for Jake" placeholder="Your tape name…">
+      <div class="char-count" id="charCount">20 / 40</div>
+    </div>
+
+    <div class="control-group">
+      <label>Recipient Name</label>
+      <input type="text" id="recipientName" value="Jake Morrison" placeholder="Full name">
+    </div>
+
+    <div class="control-group">
+      <label>Cassette Color</label>
+      <div class="color-swatches">
+        <div class="swatch black active" data-color="black" title="Classic Black"></div>
+        <div class="swatch cream" data-color="cream" title="Cream"></div>
+        <div class="swatch orange" data-color="orange" title="Orange"></div>
+        <div class="swatch blue" data-color="blue" title="Blue"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab active" data-side="front">Front</button>
+    <button class="tab" data-side="back">Back</button>
+  </div>
+
+  <!-- Card stage -->
+  <div class="card-stage">
+    <div class="card-label">6" × 4" Postcard — Print Preview</div>
+
+    <!-- FRONT -->
+    <div class="card" id="cardFront">
+      <div class="card-front">
+        <div class="cassette" id="cassette">
+
+          <div class="cassette-top">
+            <div class="screw"></div>
+            <div class="screw"></div>
+          </div>
+
+          <div class="cassette-label">
+            <div class="label-stripe"></div>
+            <div class="label-content">
+              <div class="label-side-a">▶ Side A</div>
+              <div class="label-title" id="labelText">Summer 2025 for Jake</div>
+            </div>
+            <div class="label-stripe-bottom"></div>
+          </div>
+
+          <div class="cassette-window">
+            <div class="reel">
+              <div class="reel-spokes"></div>
+              <div class="reel-hub"></div>
+            </div>
+            <div class="reel">
+              <div class="reel-spokes"></div>
+              <div class="reel-hub"></div>
+            </div>
+          </div>
+
+          <div class="cassette-bottom">
+            <div class="guide-pin"></div>
+            <div class="type-badge">Type II · 90 min</div>
+            <div class="guide-pin"></div>
+          </div>
+
+        </div>
+        <div class="branding">Tape Deck</div>
+      </div>
+    </div>
+
+    <!-- BACK -->
+    <div class="card" id="cardBack" style="display:none;">
+      <div class="card-back">
+
+        <div class="card-back-left">
+          <div class="qr-area">
+            <div class="qr-placeholder" id="qrBox"></div>
+            <div class="qr-meta">
+              <div class="scan-label">Scan<br>to Play</div>
+              <div class="scan-sub">Open your playlist<br>instantly on YouTube</div>
+            </div>
+          </div>
+          <div class="message-lines">
+            <div class="message-line"></div>
+            <div class="message-line"></div>
+            <div class="message-line"></div>
+            <div class="message-line"></div>
+          </div>
+          <div class="made-with">Made with Tape Deck</div>
+        </div>
+
+        <div class="card-back-right">
+          <div class="stamp-area">
+            <div class="stamp-label">Place<br>Stamp<br>Here</div>
+          </div>
+
+          <div class="return-address">
+            Tape Deck<br>
+            123 Cassette Lane<br>
+            San Francisco, CA 94107
+          </div>
+
+          <div>
+            <div class="recipient-name" id="recipientNameDisplay">Jake Morrison</div>
+            <div class="recipient-address">
+              456 Main Street<br>
+              Apt 3B<br>
+              Brooklyn, NY 11201
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="scale-note">Rendered at 144dpi equivalent · Actual print is 300dpi</div>
+  </div>
+
+  <script>
+    const labelInput = document.getElementById('labelInput');
+    const labelText  = document.getElementById('labelText');
+    const charCount  = document.getElementById('charCount');
+    const cassette   = document.getElementById('cassette');
+    const recipientNameInput   = document.getElementById('recipientName');
+    const recipientNameDisplay = document.getElementById('recipientNameDisplay');
+    const cardFront  = document.getElementById('cardFront');
+    const cardBack   = document.getElementById('cardBack');
+
+    labelInput.addEventListener('input', () => {
+      const val = labelInput.value || 'Your Tape';
+      labelText.textContent = val;
+      const len = labelInput.value.length;
+      charCount.textContent = `${len} / 40`;
+      charCount.classList.toggle('warn', len > 32);
+    });
+
+    recipientNameInput.addEventListener('input', () => {
+      recipientNameDisplay.textContent = recipientNameInput.value || 'Recipient Name';
+    });
+
+    document.querySelectorAll('.swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+        cassette.className = `cassette ${swatch.dataset.color}`;
+      });
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const side = tab.dataset.side;
+        cardFront.style.display = side === 'front' ? 'block' : 'none';
+        cardBack.style.display  = side === 'back'  ? 'block' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

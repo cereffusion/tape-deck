@@ -1,0 +1,179 @@
+.screen {
+  flex: 1;
+  display: flex;
+}
+
+/* ─── Summary panel ──────────────────────────────────────── */
+.summary {
+  width: 420px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.summaryHeader {
+  padding: 32px 28px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.summaryTitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  line-height: 1;
+}
+
+/* scaled card preview */
+.cardPreview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  background: #0d0d0d;
+  border-bottom: 1px solid var(--border);
+}
+
+.cardScale {
+  transform: scale(0.38);
+  transform-origin: center center;
+  /* account for scaled-down card dimensions so it doesn't take up too much space */
+  width: 329px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* order detail rows */
+.orderDetails {
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.orderKey {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.orderVal {
+  font-size: 0.8rem;
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.orderTotal .orderKey,
+.orderTotal .orderVal {
+  font-family: 'Archivo Black', sans-serif;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+/* ─── Payment panel ──────────────────────────────────────── */
+.payment {
+  flex: 1;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  overflow-y: auto;
+  max-width: 520px;
+}
+
+.paymentHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.paymentTitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.paymentSub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.error {
+  font-size: 0.75rem;
+  color: var(--danger);
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  background: rgba(232,93,4,0.1);
+  border: 1px solid rgba(232,93,4,0.3);
+  border-radius: 4px;
+}
+
+.sendBtn {
+  background: var(--accent);
+  color: #111;
+  border: none;
+  border-radius: 4px;
+  padding: 16px 24px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.14em;
+  transition: background 0.15s, opacity 0.15s;
+  width: 100%;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: #ffc040;
+}
+
+.sendBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  padding: 0;
+  align-self: flex-start;
+  transition: color 0.15s;
+}
+
+.backBtn:hover:not(:disabled) {
+  color: var(--accent);
+}
