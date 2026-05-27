@@ -50,7 +50,8 @@ export async function sendPostcard(metadata) {
   const lastName  = nameParts.slice(1).join(' ') || '.'
 
   const body = {
-    size:      '6x4',
+    size:             '6x4',
+    addressStrictness: 'relaxed',
     frontHTML: frontHtml,
     backHTML:  backHtml,
     to: {
