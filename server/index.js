@@ -20,7 +20,7 @@ app.use(express.json())
 
 // ── Create PaymentIntent ─────────────────────────────────────
 app.post('/api/create-payment-intent', async (req, res) => {
-  const { label, youtubeUrl, color, notes, cassetteId, orderNum, recipientName, address } = req.body
+  const { label, youtubeUrl, color, cardBg, notes, senderName, cassetteId, orderNum, recipientName, address } = req.body
 
   if (!label || !youtubeUrl || !recipientName) {
     return res.status(400).json({ error: 'Missing required order fields' })
@@ -31,7 +31,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
       amount:   500,
       currency: 'usd',
       metadata: {
-        label, youtubeUrl, color, notes: notes || '', cassetteId: cassetteId || '', orderNum: orderNum || '', recipientName,
+        label, youtubeUrl, color, cardBg: cardBg || 'brown', notes: notes || '', senderName: senderName || '', cassetteId: cassetteId || '', orderNum: orderNum || '', recipientName,
         addressLine1:   address?.line1   || '',
         addressLine2:   address?.line2   || '',
         addressCity:    address?.city    || '',

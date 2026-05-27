@@ -9,10 +9,54 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  --front-accent: rgba(240,160,32,0.42);
+  --front-accent-soft: rgba(240,160,32,0.12);
+  --reg-color: #6a4a20;
   background:
     radial-gradient(ellipse at 30% 20%, #2a1a0c 0%, transparent 55%),
     radial-gradient(ellipse at 70% 80%, #1a0e06 0%, transparent 60%),
     linear-gradient(135deg, #1c1208 0%, #120a04 100%);
+}
+
+/* ─── Card background variants ───────────────────────────── */
+.bgBlack {
+  --front-accent: rgba(220,200,160,0.32);
+  --front-accent-soft: rgba(220,200,160,0.10);
+  --reg-color: #6a5840;
+  background:
+    radial-gradient(ellipse at 30% 20%, #1a1a1a 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #050505 0%, transparent 60%),
+    linear-gradient(135deg, #0e0e0e 0%, #050505 100%);
+}
+
+.bgBlue {
+  --front-accent: rgba(40,60,100,0.55);
+  --front-accent-soft: rgba(40,60,100,0.18);
+  --reg-color: #4a6080;
+  background:
+    radial-gradient(ellipse at 30% 20%, #d4dfeb 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #a8bdd0 0%, transparent 60%),
+    linear-gradient(135deg, #c4d2e0 0%, #aabccf 100%);
+}
+
+.bgWhite {
+  --front-accent: rgba(120,70,30,0.6);
+  --front-accent-soft: rgba(120,70,30,0.18);
+  --reg-color: #8a6432;
+  background:
+    radial-gradient(ellipse at 30% 20%, #ffffff 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #f0e8d6 0%, transparent 60%),
+    linear-gradient(135deg, #f8f1e2 0%, #ece2cc 100%);
+}
+
+.bgGray {
+  --front-accent: rgba(50,40,30,0.6);
+  --front-accent-soft: rgba(50,40,30,0.18);
+  --reg-color: #3a3028;
+  background:
+    radial-gradient(ellipse at 30% 20%, #c8c4be 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #989088 0%, transparent 60%),
+    linear-gradient(135deg, #b4ada4 0%, #9a928a 100%);
 }
 
 /* heavy paper grain */
@@ -61,7 +105,7 @@
 .regMark::after {
   content: '';
   position: absolute;
-  background: #6a4a20;
+  background: var(--reg-color);
 }
 .regMark::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
 .regMark::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
@@ -81,16 +125,32 @@
   font-family: 'Bebas Neue', sans-serif;
   font-size: 0.78rem;
   letter-spacing: 0.55em;
-  color: rgba(240,160,32,0.42);
+  color: var(--front-accent);
   z-index: 4;
   padding-left: 0.55em;
+}
+
+.frontUrl {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.28em;
+  color: var(--front-accent);
+  opacity: 0.8;
+  z-index: 4;
+  padding-left: 0.28em;
+  text-transform: lowercase;
 }
 
 .dot {
   display: inline-block;
   width: 4px;
   height: 4px;
-  background: rgba(240,160,32,0.42);
+  background: var(--front-accent);
   border-radius: 50%;
   vertical-align: middle;
   margin: 0 12px 3px;
@@ -722,12 +782,40 @@
 /* ─── Left half ──────────────────────────────────────────── */
 .cardBackLeft {
   width: 50%;
-  padding: 50px 30px 28px;
+  padding: 50px 30px 30px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  justify-content: center;
+  gap: 28px;
   position: relative;
   z-index: 1;
+}
+
+/* ─── Sender block ───────────────────────────────────────── */
+.senderBlock {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(184,152,96,0.45);
+}
+
+.senderLabel {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.22em;
+  color: #8a6830;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.senderName {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  color: #2a1810;
+  line-height: 1;
+  padding-left: 0.06em;
 }
 
 .qrArea {
@@ -800,10 +888,8 @@
 }
 
 .messageArea {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   gap: 10px;
   padding-bottom: 4px;
 }
@@ -862,7 +948,8 @@
   padding: 50px 32px 30px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 36px;
   position: relative;
   z-index: 1;
 }
@@ -962,10 +1049,19 @@
   line-height: 1.7;
 }
 
+.returnUrl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: #c64a08;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
 .recipientBlock {
   padding: 12px 14px;
   border-left: 3px solid #c64a08;
-  margin-left: 18px;
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
 .toLabel {

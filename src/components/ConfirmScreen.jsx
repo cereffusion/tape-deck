@@ -14,7 +14,7 @@ export default function ConfirmScreen({ order }) {
 
         <div className={styles.cardWrap}>
           <div className={styles.cardScale}>
-            <CardFront label={order.label} color={order.color} cassetteId={order.cassetteId} orderNum={order.orderNum} />
+            <CardFront label={order.label} color={order.color} cassetteId={order.cassetteId} orderNum={order.orderNum} cardBg={order.cardBg} />
           </div>
         </div>
 

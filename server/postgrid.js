@@ -15,7 +15,7 @@ const FROM_ADDRESS = {
 
 export async function sendPostcard(metadata) {
   const {
-    label, youtubeUrl, color, notes, cassetteId, orderNum,
+    label, youtubeUrl, color, cardBg, notes, senderName, cassetteId, orderNum,
     recipientName,
     addressLine1, addressLine2,
     addressCity, addressState, addressZip, addressCountry,
@@ -28,7 +28,7 @@ export async function sendPostcard(metadata) {
     color: { dark: '#111111', light: '#ffffff' },
   })
 
-  const frontHtml = generateFrontHtml(label, color, cassetteId, orderNum)
+  const frontHtml = generateFrontHtml(label, color, cassetteId, orderNum, cardBg)
   const backHtml  = generateBackHtml(
     recipientName,
     {
@@ -40,7 +40,8 @@ export async function sendPostcard(metadata) {
       country: addressCountry || 'US',
     },
     qrDataUrl,
-    notes || ''
+    notes || '',
+    senderName || ''
   )
 
   // Split recipient name into first/last

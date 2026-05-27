@@ -93,6 +93,83 @@ const COLOR_VARS = {
     '--shell-text':    'rgba(200,220,255,0.18)',
     '--hairline':      'rgba(0,0,0,0.5)',
   },
+  pink: {
+    '--body':          '#f4c0ca',
+    '--body-dark':     '#c88090',
+    '--body-light':    '#fad4dc',
+    '--body-shine':    'rgba(255,255,255,0.5)',
+    '--body-wear':     'rgba(140,50,70,0.16)',
+    '--shell-edge':    '#a05868',
+    '--label-bg':      '#fff4ee',
+    '--label-bg2':     '#f4d8d2',
+    '--label-txt':     '#4a0820',
+    '--label-stripe':  '#c64a78',
+    '--label-stripe2': '#4a0820',
+    '--label-accent':  '#e85d04',
+    '--reel-bg':       '#c88090',
+    '--reel-hub':      '#a05868',
+    '--reel-teeth':    '#6a2838',
+    '--screw-color':   '#b06878',
+    '--screw-dark':    '#5a1828',
+    '--tape-color':    '#1a0408',
+    '--tape-wound':    '#5a1828',
+    '--shell-text':    'rgba(90,20,40,0.32)',
+    '--hairline':      'rgba(90,20,40,0.4)',
+  },
+  purple: {
+    '--body':          '#6a30b8',
+    '--body-dark':     '#2a0858',
+    '--body-light':    '#8a5ad8',
+    '--body-shine':    'rgba(220,200,255,0.32)',
+    '--body-wear':     'rgba(40,8,68,0.28)',
+    '--shell-edge':    '#1a0440',
+    '--label-bg':      '#f4ecff',
+    '--label-bg2':     '#d8c4f0',
+    '--label-txt':     '#1a0440',
+    '--label-stripe':  '#1a0440',
+    '--label-stripe2': '#f0a020',
+    '--label-accent':  '#f0a020',
+    '--reel-bg':       '#2a0858',
+    '--reel-hub':      '#4a1888',
+    '--reel-teeth':    '#1a0440',
+    '--screw-color':   '#3a0c70',
+    '--screw-dark':    '#1a0440',
+    '--tape-color':    '#08021a',
+    '--tape-wound':    '#2a0858',
+    '--shell-text':    'rgba(220,200,255,0.22)',
+    '--hairline':      'rgba(0,0,0,0.5)',
+  },
+  sage: {
+    '--body':          '#9caa88',
+    '--body-dark':     '#6a7858',
+    '--body-light':    '#b6c4a4',
+    '--body-shine':    'rgba(240,245,220,0.4)',
+    '--body-wear':     'rgba(40,50,28,0.16)',
+    '--shell-edge':    '#3e4a30',
+    '--label-bg':      '#faf2dc',
+    '--label-bg2':     '#e8dcba',
+    '--label-txt':     '#1e2a14',
+    '--label-stripe':  '#3a4a22',
+    '--label-stripe2': '#c64a08',
+    '--label-accent':  '#c64a08',
+    '--reel-bg':       '#6a7858',
+    '--reel-hub':      '#4e5a3c',
+    '--reel-teeth':    '#2a3420',
+    '--screw-color':   '#5a6848',
+    '--screw-dark':    '#2e3822',
+    '--tape-color':    '#0c1006',
+    '--tape-wound':    '#3a2a14',
+    '--shell-text':    'rgba(28,40,18,0.32)',
+    '--hairline':      'rgba(28,40,18,0.4)',
+  },
+}
+
+const BG_CLASSES = {
+  brown:  '',
+  black:  styles.bgBlack,
+  blue:   styles.bgBlue,
+  white:  styles.bgWhite,
+  gray:   styles.bgGray,
 }
 
 function getLabelFontSize(text) {
@@ -111,10 +188,11 @@ function Reel() {
   )
 }
 
-export function CardFront({ label, color, cassetteId, orderNum }) {
+export function CardFront({ label, color, cassetteId, orderNum, cardBg }) {
   const vars = COLOR_VARS[color] || COLOR_VARS.black
+  const bgClass = BG_CLASSES[cardBg] || ''
   return (
-    <div className={styles.cardFront}>
+    <div className={[styles.cardFront, bgClass].filter(Boolean).join(' ')}>
       <div className={styles.frontFrame} />
       <div className={`${styles.regMark} ${styles.regTl}`} />
       <div className={`${styles.regMark} ${styles.regTr}`} />
@@ -129,7 +207,7 @@ export function CardFront({ label, color, cassetteId, orderNum }) {
 
           <div className={styles.cassetteTop}>
             <div className={styles.screw} />
-            <div className={styles.shellBrandTop}>TAPE DECK</div>
+            <div className={styles.shellBrandTop}>MAIL-A-MIX</div>
             <div className={styles.screw} />
           </div>
 
@@ -137,7 +215,7 @@ export function CardFront({ label, color, cassetteId, orderNum }) {
             <div className={styles.cassetteLabel}>
               <div className={styles.labelHeader}>
                 <div className={styles.labelBrand}>
-                  TAPE<span className={styles.sep}> · </span>DECK
+                  MAIL<span className={styles.sep}> · </span>A<span className={styles.sep}> · </span>MIX
                 </div>
                 <div className={styles.labelCat}>C-{cassetteId || '90'} · NO. {orderNum || '0420'}</div>
               </div>
@@ -196,21 +274,27 @@ export function CardFront({ label, color, cassetteId, orderNum }) {
       </div>
 
       <div className={styles.frontBrand}>
-        TAPE<span className={styles.dot} />DECK
+        MAIL<span className={styles.dot} />A<span className={styles.dot} />MIX
       </div>
+      <div className={styles.frontUrl}>mailamix.com</div>
     </div>
   )
 }
 
-export function CardBack({ recipientName, address, qrDataUrl, notes }) {
+export function CardBack({ recipientName, address, qrDataUrl, notes, senderName }) {
   const addrLine = [address?.city, address?.state, address?.zip].filter(Boolean).join(', ')
   return (
     <div className={styles.cardBack}>
       <div className={styles.postcardMasthead}>
-        POSTCARD<span className={styles.dot} />TAPE DECK<span className={styles.dot} />PLAY ME
+        POSTCARD<span className={styles.dot} />MAIL-A-MIX<span className={styles.dot} />PLAY ME
       </div>
 
       <div className={styles.cardBackLeft}>
+        <div className={styles.senderBlock}>
+          <div className={styles.senderLabel}>A mixtape from</div>
+          <div className={styles.senderName}>{senderName || 'A friend'}</div>
+        </div>
+
         <div className={styles.qrArea}>
           <div className={styles.qrBox}>
             {qrDataUrl
@@ -237,13 +321,11 @@ export function CardBack({ recipientName, address, qrDataUrl, notes }) {
               </div>
           }
         </div>
-
-        <div className={styles.madeWith}>Pressed with care by Tape Deck</div>
       </div>
 
       <div className={styles.cardBackRight}>
         <div className={styles.cancelMark}>
-          <div className={styles.cancelTop}>TAPE DECK</div>
+          <div className={styles.cancelTop}>MAIL-A-MIX</div>
           <div className={styles.cancelMid}>2026</div>
           <div className={styles.cancelBot}>Side A · Play</div>
         </div>
@@ -255,10 +337,11 @@ export function CardBack({ recipientName, address, qrDataUrl, notes }) {
           <div className={styles.returnBlock}>
             <div className={styles.returnLabel}>From</div>
             <div className={styles.returnAddress}>
-              Tape Deck<br />
-              123 Cassette Lane<br />
-              San Francisco, CA 94107
+              Mail-a-Mix<br />
+              5504 13th Ave, Unit #214<br />
+              Brooklyn, NY 11219
             </div>
+            <div className={styles.returnUrl}>mailamix.com</div>
           </div>
         </div>
 

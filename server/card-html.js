@@ -92,8 +92,17 @@ function getLabelFontSize(text) {
   return '44px'
 }
 
-export function generateFrontHtml(label, color, cassetteId, orderNum) {
+const BG_VARIANTS = {
+  brown: { bg1:'#2a1a0c', bg2:'#1a0e06', bg3:'#1c1208', bg4:'#120a04', accent:'rgba(240,160,32,0.42)', accentSoft:'rgba(240,160,32,0.12)', reg:'#6a4a20' },
+  black: { bg1:'#1a1a1a', bg2:'#050505', bg3:'#0e0e0e', bg4:'#050505', accent:'rgba(220,200,160,0.32)', accentSoft:'rgba(220,200,160,0.10)', reg:'#6a5840' },
+  blue:  { bg1:'#d4dfeb', bg2:'#a8bdd0', bg3:'#c4d2e0', bg4:'#aabccf', accent:'rgba(40,60,100,0.55)',  accentSoft:'rgba(40,60,100,0.18)',  reg:'#4a6080' },
+  white: { bg1:'#ffffff', bg2:'#f0e8d6', bg3:'#f8f1e2', bg4:'#ece2cc', accent:'rgba(120,70,30,0.6)',   accentSoft:'rgba(120,70,30,0.18)',  reg:'#8a6432' },
+  gray:  { bg1:'#c8c4be', bg2:'#989088', bg3:'#b4ada4', bg4:'#9a928a', accent:'rgba(50,40,30,0.6)',    accentSoft:'rgba(50,40,30,0.18)',   reg:'#3a3028' },
+}
+
+export function generateFrontHtml(label, color, cassetteId, orderNum, cardBg) {
   const c = COLORS[color] || COLORS.black
+  const bg = BG_VARIANTS[cardBg] || BG_VARIANTS.brown
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -108,7 +117,10 @@ export function generateFrontHtml(label, color, cassetteId, orderNum) {
     width: 864px; height: 576px;
     position: relative;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #1c1208 0%, #120a04 100%);
+    background:
+      radial-gradient(ellipse at 30% 20%, ${bg.bg1} 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 80%, ${bg.bg2} 0%, transparent 60%),
+      linear-gradient(135deg, ${bg.bg3} 0%, ${bg.bg4} 100%);
   }
 
   .front-frame {
@@ -122,21 +134,29 @@ export function generateFrontHtml(label, color, cassetteId, orderNum) {
     position: absolute; top: 30px; left: 36px;
     font-family: 'Space Mono', monospace;
     font-size: 8px; letter-spacing: 0.3em;
-    color: rgba(240,160,32,0.28); text-transform: uppercase;
+    color: ${bg.accentSoft}; text-transform: uppercase;
   }
   .front-cat {
     position: absolute; top: 30px; right: 36px;
     font-family: 'Space Mono', monospace;
     font-size: 8px; letter-spacing: 0.3em;
-    color: rgba(240,160,32,0.28); text-transform: uppercase;
+    color: ${bg.accentSoft}; text-transform: uppercase;
   }
   .front-brand {
     position: absolute; bottom: 22px; left: 0; right: 0;
     text-align: center;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 11px; letter-spacing: 0.55em;
-    color: rgba(240,160,32,0.42);
+    color: ${bg.accent};
     padding-left: 0.55em;
+  }
+  .front-url {
+    position: absolute; bottom: 8px; left: 0; right: 0;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 8px; letter-spacing: 0.28em;
+    color: ${bg.accent}; opacity: 0.8; padding-left: 0.28em;
+    text-transform: lowercase;
   }
 
   .cassette-wrap {
@@ -303,14 +323,14 @@ export function generateFrontHtml(label, color, cassetteId, orderNum) {
     <div class="cassette">
       <div class="cassette-top">
         <div class="screw"></div>
-        <div class="shell-brand-top">TAPE DECK</div>
+        <div class="shell-brand-top">MAIL-A-MIX</div>
         <div class="screw"></div>
       </div>
 
       <div class="label-well">
         <div class="cassette-label">
           <div class="label-header">
-            <div class="label-brand">TAPE · DECK</div>
+            <div class="label-brand">MAIL · A · MIX</div>
             <div class="label-cat">C-${cassetteId || '90'} · NO. ${orderNum || '0420'}</div>
           </div>
           <div class="label-body">
@@ -347,13 +367,14 @@ export function generateFrontHtml(label, color, cassetteId, orderNum) {
     </div>
   </div>
 
-  <div class="front-brand">TAPE &nbsp;·&nbsp; DECK</div>
+  <div class="front-brand">MAIL &nbsp;·&nbsp; A &nbsp;·&nbsp; MIX</div>
+  <div class="front-url">mailamix.com</div>
 </div>
 </body>
 </html>`
 }
 
-export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
+export function generateBackHtml(recipientName, address, qrDataUrl, notes, senderName) {
   const addrLine = [address.city, address.state, address.zip].filter(Boolean).join(', ')
   const qrContent = qrDataUrl
     ? `<img src="${qrDataUrl}" width="96" height="96" alt="QR code">`
@@ -388,8 +409,8 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
 
   /* ── Left half ── */
   .left {
-    width: 50%; padding: 50px 30px 28px;
-    display: flex; flex-direction: column; gap: 14px;
+    width: 50%; padding: 50px 30px 30px;
+    display: flex; flex-direction: column; justify-content: center; gap: 28px;
     position: relative; z-index: 1;
   }
   .qr-area { display: flex; align-items: flex-start; gap: 16px; }
@@ -424,6 +445,19 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
     flex: 1; display: flex; flex-direction: column;
     justify-content: flex-end; gap: 10px; padding-bottom: 4px;
   }
+  .sender-block {
+    display: flex; align-items: baseline; gap: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed rgba(184,152,96,0.45);
+  }
+  .sender-label {
+    font-family: 'Space Mono', monospace; font-size: 7px;
+    letter-spacing: 0.22em; color: #8a6830; text-transform: uppercase; flex-shrink: 0;
+  }
+  .sender-name {
+    font-family: 'Bebas Neue', sans-serif; font-size: 16px;
+    letter-spacing: 0.06em; color: #2a1810; line-height: 1; padding-left: 0.06em;
+  }
   .message-label {
     font-family: 'Space Mono', monospace; font-size: 7px;
     letter-spacing: 0.22em; color: #8a6830; text-transform: uppercase;
@@ -439,9 +473,9 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
     font-family: 'Space Mono', monospace; font-size: 9px;
     color: #2a1810; line-height: 1.7; letter-spacing: 0.02em;
   }
-  .made-with {
-    font-family: 'Space Mono', monospace; font-size: 7px;
-    color: #8a6830; letter-spacing: 0.18em; text-transform: uppercase; padding-top: 4px;
+  .return-url {
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    color: #c64a08; letter-spacing: 0.06em; margin-top: 4px;
   }
 
   /* ── Right half ── */
@@ -510,9 +544,14 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
 <body>
 <div class="card-back">
   <div class="divider"></div>
-  <div class="masthead">POSTCARD · TAPE DECK · PLAY ME</div>
+  <div class="masthead">POSTCARD · MAIL-A-MIX · PLAY ME</div>
 
   <div class="left">
+    <div class="sender-block">
+      <div class="sender-label">A mixtape from</div>
+      <div class="sender-name">${escapeHtml(senderName || 'A friend')}</div>
+    </div>
+
     <div class="qr-area">
       <div class="qr-box">${qrContent}</div>
       <div class="qr-meta">
@@ -533,12 +572,11 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
           </div>`
       }
     </div>
-    <div class="made-with">Pressed with care by Tape Deck</div>
   </div>
 
   <div class="right">
     <div class="cancel-mark">
-      <div class="cancel-top">TAPE DECK</div>
+      <div class="cancel-top">MAIL-A-MIX</div>
       <div class="cancel-mid">2026</div>
       <div class="cancel-bot">Side A · Play</div>
     </div>
@@ -549,10 +587,11 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
       <div class="return-block">
         <div class="return-label">From</div>
         <div class="return-address">
-          Tape Deck<br>
-          123 Cassette Lane<br>
-          San Francisco, CA 94107
+          Mail-a-Mix<br>
+          5504 13th Ave, Unit #214<br>
+          Brooklyn, NY 11219
         </div>
+        <div class="return-url">mailamix.com</div>
       </div>
     </div>
     <div class="recipient-block">

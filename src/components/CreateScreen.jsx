@@ -4,10 +4,21 @@ import { CardFront, CardBack } from './CassetteCard.jsx'
 import styles from './CreateScreen.module.css'
 
 const COLORS = [
-  { id: 'black',  label: 'Classic Black', hex: '#1e1e1e' },
-  { id: 'cream',  label: 'Cream',         hex: '#f0deb0' },
-  { id: 'orange', label: 'Orange',        hex: '#c94a00' },
-  { id: 'blue',   label: 'Blue',          hex: '#1a3a7a' },
+  { id: 'black',  label: 'Classic Black', hex: 'radial-gradient(circle at 30% 30%, #3a3a3a, #1a1a1a 70%)' },
+  { id: 'cream',  label: 'Cream',         hex: 'radial-gradient(circle at 30% 30%, #fff0c8, #d4b878 80%)' },
+  { id: 'orange', label: 'Orange',        hex: 'radial-gradient(circle at 30% 30%, #ff7a20, #a83800 80%)' },
+  { id: 'blue',   label: 'Blue',          hex: 'radial-gradient(circle at 30% 30%, #3a78ff, #0a1a55 80%)' },
+  { id: 'pink',   label: 'Pastel Pink',   hex: 'radial-gradient(circle at 30% 30%, #fcd6dc, #c88090 80%)' },
+  { id: 'purple', label: 'Purple',        hex: 'radial-gradient(circle at 30% 30%, #a070ec, #3a0c70 80%)' },
+  { id: 'sage',   label: 'Sage Green',    hex: 'radial-gradient(circle at 30% 30%, #b6c4a4, #4e5a3c 80%)' },
+]
+
+const BG_COLORS = [
+  { id: 'brown', label: 'Warm Brown', hex: 'radial-gradient(circle at 30% 30%, #3a2410, #14100a 80%)' },
+  { id: 'black', label: 'Black',      hex: 'radial-gradient(circle at 30% 30%, #1c1c1c, #050505 80%)' },
+  { id: 'blue',  label: 'Light Blue', hex: 'radial-gradient(circle at 30% 30%, #d4dfeb, #98aecc 80%)' },
+  { id: 'white', label: 'White',      hex: 'radial-gradient(circle at 30% 30%, #ffffff, #ebe2cf 80%)' },
+  { id: 'gray',  label: 'Light Gray', hex: 'radial-gradient(circle at 30% 30%, #c8c4be, #989088 80%)' },
 ]
 
 const YT_RE = /^(https?:\/\/)?(www\.)?(youtube\.com\/(playlist|watch)|youtu\.be\/)/
@@ -105,6 +116,18 @@ export default function CreateScreen({ order, onChange, onNext }) {
         </div>
 
         <div className={styles.field}>
+          <label className={styles.label}>Your Name <span className={styles.optional}>(shown on card back)</span></label>
+          <input
+            className={styles.input}
+            type="text"
+            placeholder="e.g. Maria"
+            value={order.senderName}
+            onChange={e => onChange({ senderName: e.target.value.slice(0, 40) })}
+            maxLength={40}
+          />
+        </div>
+
+        <div className={styles.field}>
           <label className={styles.label}>Personal Note <span className={styles.optional}>(optional)</span></label>
           <textarea
             className={styles.textarea}
@@ -124,7 +147,7 @@ export default function CreateScreen({ order, onChange, onNext }) {
               <button
                 key={c.id}
                 className={[styles.swatch, order.color === c.id ? styles.swatchActive : ''].join(' ')}
-                style={{ '--swatch-color': c.hex }}
+                style={{ background: c.hex }}
                 onClick={() => onChange({ color: c.id })}
                 title={c.label}
                 aria-label={c.label}
@@ -133,6 +156,25 @@ export default function CreateScreen({ order, onChange, onNext }) {
           </div>
           <div className={styles.colorName}>
             {COLORS.find(c => c.id === order.color)?.label}
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Card Background</label>
+          <div className={styles.swatches}>
+            {BG_COLORS.map(c => (
+              <button
+                key={c.id}
+                className={[styles.swatch, order.cardBg === c.id ? styles.swatchActive : ''].join(' ')}
+                style={{ background: c.hex }}
+                onClick={() => onChange({ cardBg: c.id })}
+                title={c.label}
+                aria-label={c.label}
+              />
+            ))}
+          </div>
+          <div className={styles.colorName}>
+            {BG_COLORS.find(c => c.id === order.cardBg)?.label}
           </div>
         </div>
 
@@ -161,12 +203,13 @@ export default function CreateScreen({ order, onChange, onNext }) {
         <div className={styles.cardWrap}>
           <div className={styles.cardScale}>
             {side === 'front'
-              ? <CardFront label={order.label} color={order.color} cassetteId={order.cassetteId} orderNum={order.orderNum} />
+              ? <CardFront label={order.label} color={order.color} cassetteId={order.cassetteId} orderNum={order.orderNum} cardBg={order.cardBg} />
               : <CardBack
                   recipientName={order.recipientName}
                   address={order.address}
                   qrDataUrl={qrDataUrl}
                   notes={order.notes}
+                  senderName={order.senderName}
                 />
             }
           </div>
