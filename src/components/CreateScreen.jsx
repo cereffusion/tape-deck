@@ -161,7 +161,7 @@ export default function CreateScreen({ order, onChange, onNext }) {
         <div className={styles.cardWrap}>
           <div className={styles.cardScale}>
             {side === 'front'
-              ? <CardFront label={order.label} color={order.color} />
+              ? <CardFront label={order.label} color={order.color} cassetteId={order.cassetteId} orderNum={order.orderNum} />
               : <CardBack
                   recipientName={order.recipientName}
                   address={order.address}

@@ -111,7 +111,7 @@ function Reel() {
   )
 }
 
-export function CardFront({ label, color }) {
+export function CardFront({ label, color, cassetteId, orderNum }) {
   const vars = COLOR_VARS[color] || COLOR_VARS.black
   return (
     <div className={styles.cardFront}>
@@ -139,7 +139,7 @@ export function CardFront({ label, color }) {
                 <div className={styles.labelBrand}>
                   TAPE<span className={styles.sep}> · </span>DECK
                 </div>
-                <div className={styles.labelCat}>C-90 · NO. 0420</div>
+                <div className={styles.labelCat}>C-{cassetteId || '90'} · NO. {orderNum || '0420'}</div>
               </div>
               <div className={styles.labelBody}>
                 <div

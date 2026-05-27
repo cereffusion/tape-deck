@@ -92,7 +92,7 @@ function getLabelFontSize(text) {
   return '44px'
 }
 
-export function generateFrontHtml(label, color) {
+export function generateFrontHtml(label, color, cassetteId, orderNum) {
   const c = COLORS[color] || COLORS.black
 
   return `<!DOCTYPE html>
@@ -311,7 +311,7 @@ export function generateFrontHtml(label, color) {
         <div class="cassette-label">
           <div class="label-header">
             <div class="label-brand">TAPE · DECK</div>
-            <div class="label-cat">C-90 · NO. 0420</div>
+            <div class="label-cat">C-${cassetteId || '90'} · NO. ${orderNum || '0420'}</div>
           </div>
           <div class="label-body">
             <div class="label-title">${escapeHtml(label || 'Your Tape')}</div>

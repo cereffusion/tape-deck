@@ -44,7 +44,7 @@ export default function PayScreen({ order, onBack, onSuccess }) {
 
         <div className={styles.cardPreview}>
           <div className={styles.cardScale}>
-            <CardFront label={order.label} color={order.color} />
+            <CardFront label={order.label} color={order.color} cassetteId={order.cassetteId} orderNum={order.orderNum} />
           </div>
         </div>
 

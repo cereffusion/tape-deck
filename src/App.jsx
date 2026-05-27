@@ -21,6 +21,8 @@ export default function App() {
     youtubeUrl: '',
     color: 'black',
     notes: '',
+    cassetteId: String(Math.floor(Math.random() * 90) + 10),
+    orderNum:   String(Math.floor(Math.random() * 9000) + 1000),
     recipientName: '',
     address: { line1: '', line2: '', city: '', state: '', zip: '', country: 'US' },
   })
