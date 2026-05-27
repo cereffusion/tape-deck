@@ -28,38 +28,58 @@ function isValidYouTubeUrl(url) {
 }
 
 export default function CreateScreen({ order, onChange, onNext }) {
-  const [side, setSide]         = useState('front')
+  const [side, setSide]           = useState('front')
   const [qrDataUrl, setQrDataUrl] = useState(null)
-  const [urlError, setUrlError] = useState('')
+  const [urlError, setUrlError]   = useState('')
+  const [urlValid, setUrlValid]   = useState(null) // null | { type, title }
+  const [urlChecking, setUrlChecking] = useState(false)
   const debounceRef = useRef(null)
 
-  // QR code generation — debounced
+  // QR + YouTube validation — debounced
   useEffect(() => {
     clearTimeout(debounceRef.current)
     if (!order.youtubeUrl || !isValidYouTubeUrl(order.youtubeUrl)) {
       setQrDataUrl(null)
+      setUrlValid(null)
+      setUrlChecking(false)
       return
     }
+    setUrlChecking(true)
+    setUrlValid(null)
     debounceRef.current = setTimeout(async () => {
       try {
-        const url = await QRCode.toDataURL(order.youtubeUrl.trim(), {
-          width: 180,
-          margin: 1,
-          color: { dark: '#111111', light: '#ffffff' },
-        })
-        setQrDataUrl(url)
+        const [qr, ytRes] = await Promise.all([
+          QRCode.toDataURL(order.youtubeUrl.trim(), {
+            width: 180, margin: 1,
+            color: { dark: '#111111', light: '#ffffff' },
+          }),
+          fetch(`/api/validate-youtube?url=${encodeURIComponent(order.youtubeUrl.trim())}`).then(r => r.json()),
+        ])
+        setQrDataUrl(qr)
+        if (ytRes.valid) {
+          setUrlValid(ytRes)
+          setUrlError('')
+        } else {
+          setUrlValid(null)
+          setUrlError(ytRes.error || 'Could not verify this URL')
+        }
       } catch {
         setQrDataUrl(null)
+        setUrlValid(null)
+        setUrlError('Could not verify this URL')
       }
-    }, 400)
+      setUrlChecking(false)
+    }, 600)
     return () => clearTimeout(debounceRef.current)
   }, [order.youtubeUrl])
 
   function handleUrlChange(e) {
     const val = e.target.value
     onChange({ youtubeUrl: val })
+    setUrlValid(null)
     if (val && !isValidYouTubeUrl(val)) {
       setUrlError('Needs a valid YouTube playlist or video URL')
+      setUrlChecking(false)
     } else {
       setUrlError('')
     }
@@ -73,7 +93,7 @@ export default function CreateScreen({ order, onChange, onNext }) {
     onChange({ notes: e.target.value.slice(0, 200) })
   }
 
-  const canProceed = order.label.trim() && order.youtubeUrl.trim() && isValidYouTubeUrl(order.youtubeUrl)
+  const canProceed = order.label.trim() && urlValid && !urlChecking
 
   return (
     <div className={styles.screen}>
@@ -110,8 +130,9 @@ export default function CreateScreen({ order, onChange, onNext }) {
             onChange={handleUrlChange}
           />
           {urlError && <div className={styles.error}>{urlError}</div>}
-          {order.youtubeUrl && !urlError && (
-            <div className={styles.valid}>✓ Valid YouTube URL</div>
+          {urlChecking && <div className={styles.checking}>Checking...</div>}
+          {urlValid && (
+            <div className={styles.valid}>✓ {urlValid.type === 'playlist' ? 'Playlist' : 'Video'}: {urlValid.title}</div>
           )}
         </div>
 

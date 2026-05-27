@@ -119,6 +119,12 @@
   letter-spacing: 0.04em;
 }
 
+.checking {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
 /* ─── Color swatches ─────────────────────────────────────── */
 .swatches {
   display: flex;

@@ -99,6 +99,39 @@ app.post('/api/test-send', async (req, res) => {
   }
 })
 
+// ── Validate YouTube URL ─────────────────────────────────────
+app.get('/api/validate-youtube', async (req, res) => {
+  const { url } = req.query
+  if (!url) return res.status(400).json({ valid: false, error: 'No URL provided' })
+
+  const apiKey = process.env.YOUTUBE_API_KEY
+  if (!apiKey) return res.status(500).json({ valid: false, error: 'YouTube API key not configured' })
+
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`)
+    const listId  = u.searchParams.get('list')
+    const videoId = u.searchParams.get('v') || (u.hostname === 'youtu.be' ? u.pathname.slice(1) : null)
+
+    if (listId) {
+      const r = await fetch(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${listId}&key=${apiKey}`)
+      const d = await r.json()
+      if (!d.items?.length) return res.json({ valid: false, error: 'Playlist not found or is private' })
+      return res.json({ valid: true, type: 'playlist', title: d.items[0].snippet.title })
+    }
+
+    if (videoId) {
+      const r = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`)
+      const d = await r.json()
+      if (!d.items?.length) return res.json({ valid: false, error: 'Video not found or is private' })
+      return res.json({ valid: true, type: 'video', title: d.items[0].snippet.title })
+    }
+
+    res.json({ valid: false, error: 'Could not extract a playlist or video ID from this URL' })
+  } catch {
+    res.json({ valid: false, error: 'Invalid URL' })
+  }
+})
+
 // ── Minimal PostGrid connectivity test ──────────────────────
 app.post('/api/test-postgrid-minimal', async (req, res) => {
   try {
