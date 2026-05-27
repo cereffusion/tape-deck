@@ -28,6 +28,7 @@ export default function App() {
     orderNum:   String(Math.floor(Math.random() * 9000) + 1000),
     recipientName: '',
     address: { line1: '', line2: '', city: '', state: '', zip: '', country: 'US' },
+    senderAddress: { line1: '', line2: '', city: '', state: '', zip: '', country: 'US' },
   })
 
   function updateOrder(patch) {

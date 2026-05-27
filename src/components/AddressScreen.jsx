@@ -17,6 +17,10 @@ export default function AddressScreen({ order, onChange, onBack, onNext, error }
     onChange({ address: { ...order.address, [key]: val } })
   }
 
+  function setSenderAddr(key, val) {
+    onChange({ senderAddress: { ...order.senderAddress, [key]: val } })
+  }
+
   const addr = order.address
   const canProceed = order.email.trim()
     && order.recipientName.trim()
@@ -64,6 +68,44 @@ export default function AddressScreen({ order, onChange, onBack, onNext, error }
             />
           </div>
         ))}
+
+        <div className={styles.senderSection}>
+          <div className={styles.senderHeading}>Your Return Address <span className={styles.optional}>(optional — printed as return address)</span></div>
+          <div className={styles.field}>
+            <label className={styles.label}>Address Line 1</label>
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="123 Main Street"
+              value={order.senderAddress?.line1 || ''}
+              onChange={e => setSenderAddr('line1', e.target.value)}
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>Address Line 2 <span className={styles.optional}>(apt, suite, etc.)</span></label>
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="Apt 4B"
+              value={order.senderAddress?.line2 || ''}
+              onChange={e => setSenderAddr('line2', e.target.value)}
+            />
+          </div>
+          <div className={styles.addrRow}>
+            <div className={styles.field}>
+              <label className={styles.label}>City</label>
+              <input className={styles.input} type="text" placeholder="Brooklyn" value={order.senderAddress?.city || ''} onChange={e => setSenderAddr('city', e.target.value)} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>State</label>
+              <input className={styles.input} type="text" placeholder="NY" value={order.senderAddress?.state || ''} onChange={e => setSenderAddr('state', e.target.value)} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>ZIP</label>
+              <input className={styles.input} type="text" placeholder="11201" value={order.senderAddress?.zip || ''} onChange={e => setSenderAddr('zip', e.target.value)} />
+            </div>
+          </div>
+        </div>
 
         {error && <div className={styles.error}>{error}</div>}
 

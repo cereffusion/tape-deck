@@ -19,6 +19,7 @@ export async function sendPostcard(metadata) {
     recipientName,
     addressLine1, addressLine2,
     addressCity, addressState, addressZip, addressCountry,
+    senderLine1, senderLine2, senderCity, senderState, senderZip, senderCountry,
   } = metadata
 
   // Generate QR code as base64 PNG
@@ -64,7 +65,18 @@ export async function sendPostcard(metadata) {
       postalOrZip:     addressZip,
       countryCode:     addressCountry || 'US',
     },
-    from: FROM_ADDRESS,
+    from: senderLine1
+      ? {
+          firstName:       (senderName || 'Friend').split(' ')[0],
+          lastName:        (senderName || '').split(' ').slice(1).join(' ') || '.',
+          addressLine1:    senderLine1,
+          addressLine2:    senderLine2 || undefined,
+          city:            senderCity,
+          provinceOrState: senderState,
+          postalOrZip:     senderZip,
+          countryCode:     senderCountry || 'US',
+        }
+      : FROM_ADDRESS,
   }
 
   console.log('Sending to PostGrid — frontHTML length:', frontHtml.length, '| first 100 chars:', frontHtml.slice(0, 100))

@@ -127,6 +127,29 @@
   cursor: not-allowed;
 }
 
+/* ─── Sender (return) address section ───────────────────── */
+.senderSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px dashed var(--border-mid);
+  border-radius: 6px;
+}
+
+.senderHeading {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.addrRow {
+  display: grid;
+  grid-template-columns: 1fr 72px 90px;
+  gap: 10px;
+}
+
 /* ─── Side panel ─────────────────────────────────────────── */
 .side {
   flex: 1;
