@@ -69,10 +69,18 @@ app.post('/api/webhook', async (req, res) => {
   }
 
   if (event.type === 'payment_intent.succeeded') {
-    const metadata = event.data.object.metadata
+    const pi = event.data.object
+    const metadata = pi.metadata
     console.log('Payment succeeded — firing PostGrid for:', metadata.label)
     try {
-      await sendPostcard(metadata)
+      const postcard = await sendPostcard(metadata)
+      try {
+        await stripe.paymentIntents.update(pi.id, {
+          metadata: { ...metadata, postcardId: postcard.id, postcardStatus: postcard.status },
+        })
+      } catch (writeErr) {
+        console.error('PostGrid succeeded but Stripe write-back failed — postcardId:', postcard.id, writeErr.message)
+      }
     } catch (err) {
       console.error('PostGrid failed:', err.message)
     }
@@ -161,6 +169,35 @@ app.post('/api/retry-order', async (req, res) => {
     res.json({ success: true, postcard: result })
   } catch (err) {
     console.error('retry-order error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Admin: reconcile Stripe vs PostGrid ─────────────────────
+// GET /api/admin/orders?adminSecret=...&limit=50
+app.get('/api/admin/orders', async (req, res) => {
+  const { adminSecret, limit = '50' } = req.query
+  if (adminSecret !== process.env.ADMIN_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  try {
+    const list = await stripe.paymentIntents.list({ limit: Math.min(Number(limit), 100) })
+    const orders = list.data
+      .filter(pi => pi.status === 'succeeded')
+      .map(pi => ({
+        id:            pi.id,
+        created:       new Date(pi.created * 1000).toISOString(),
+        amount:        pi.amount,
+        receiptEmail:  pi.receipt_email,
+        label:         pi.metadata.label,
+        recipient:     pi.metadata.recipientName,
+        postcardId:    pi.metadata.postcardId || null,
+        postcardStatus: pi.metadata.postcardStatus || null,
+        sent:          !!pi.metadata.postcardId,
+      }))
+    const gaps = orders.filter(o => !o.sent)
+    res.json({ total: orders.length, gaps: gaps.length, orders })
+  } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
