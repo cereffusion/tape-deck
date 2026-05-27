@@ -51,7 +51,7 @@ export async function sendPostcard(metadata) {
 
   const body = {
     size:             '6x4',
-    addressStrictness: 'relaxed',
+    addressStrictness: 'none',
     frontHTML: frontHtml,
     backHTML:  backHtml,
     to: {

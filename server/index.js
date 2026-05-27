@@ -135,7 +135,7 @@ app.get('/api/validate-youtube', async (req, res) => {
 // ── Retry PostGrid for a specific payment intent ─────────────
 // POST /api/retry-order  { "paymentIntentId": "pi_...", "adminSecret": "..." }
 app.post('/api/retry-order', async (req, res) => {
-  const { paymentIntentId, adminSecret } = req.body
+  const { paymentIntentId, adminSecret, addressOverride } = req.body
   if (adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
@@ -147,7 +147,10 @@ app.post('/api/retry-order', async (req, res) => {
     if (pi.status !== 'succeeded') {
       return res.status(400).json({ error: `Payment status is ${pi.status}, not succeeded` })
     }
-    const result = await sendPostcard(pi.metadata)
+    const metadata = addressOverride
+      ? { ...pi.metadata, ...addressOverride }
+      : pi.metadata
+    const result = await sendPostcard(metadata)
     res.json({ success: true, postcard: result })
   } catch (err) {
     console.error('retry-order error:', err.message)
