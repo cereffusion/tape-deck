@@ -23,6 +23,7 @@ export default function App() {
     cardBg: 'brown',
     notes: '',
     senderName: '',
+    email: '',
     cassetteId: String(Math.floor(Math.random() * 90) + 10),
     orderNum:   String(Math.floor(Math.random() * 9000) + 1000),
     recipientName: '',

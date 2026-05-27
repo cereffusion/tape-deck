@@ -18,7 +18,8 @@ export default function AddressScreen({ order, onChange, onBack, onNext, error }
   }
 
   const addr = order.address
-  const canProceed = order.recipientName.trim()
+  const canProceed = order.email.trim()
+    && order.recipientName.trim()
     && addr.line1.trim() && addr.city.trim() && addr.state.trim() && addr.zip.trim()
 
   return (
@@ -27,6 +28,17 @@ export default function AddressScreen({ order, onChange, onBack, onNext, error }
         <div className={styles.formHeader}>
           <h2 className={styles.formTitle}>Where's it going?</h2>
           <p className={styles.formSub}>We'll print and mail it directly to them.</p>
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Your Email <span className={styles.optional}>(for receipt)</span></label>
+          <input
+            className={styles.input}
+            type="email"
+            placeholder="you@example.com"
+            value={order.email}
+            onChange={e => onChange({ email: e.target.value })}
+          />
         </div>
 
         <div className={styles.field}>

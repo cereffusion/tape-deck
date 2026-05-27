@@ -97,6 +97,14 @@
   color: var(--accent);
 }
 
+.optional {
+  color: var(--text-dim);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  font-weight: 400;
+}
+
 .nextBtn {
   flex: 1;
   background: var(--accent);

@@ -20,7 +20,7 @@ app.use(express.json())
 
 // ── Create PaymentIntent ─────────────────────────────────────
 app.post('/api/create-payment-intent', async (req, res) => {
-  const { label, youtubeUrl, color, cardBg, notes, senderName, cassetteId, orderNum, recipientName, address } = req.body
+  const { label, youtubeUrl, color, cardBg, notes, senderName, email, cassetteId, orderNum, recipientName, address } = req.body
 
   if (!label || !youtubeUrl || !recipientName) {
     return res.status(400).json({ error: 'Missing required order fields' })
@@ -30,6 +30,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount:   500,
       currency: 'usd',
+      ...(email ? { receipt_email: email } : {}),
       metadata: {
         label, youtubeUrl, color, cardBg: cardBg || 'brown', notes: notes || '', senderName: senderName || '', cassetteId: cassetteId || '', orderNum: orderNum || '', recipientName,
         addressLine1:   address?.line1   || '',
