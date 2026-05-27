@@ -202,7 +202,7 @@ export function CardFront({ label, color }) {
   )
 }
 
-export function CardBack({ recipientName, address, qrDataUrl }) {
+export function CardBack({ recipientName, address, qrDataUrl, notes }) {
   const addrLine = [address?.city, address?.state, address?.zip].filter(Boolean).join(', ')
   return (
     <div className={styles.cardBack}>
@@ -227,12 +227,15 @@ export function CardBack({ recipientName, address, qrDataUrl }) {
 
         <div className={styles.messageArea}>
           <div className={styles.messageLabel}>A note for you —</div>
-          <div className={styles.messageLines}>
-            <div className={styles.messageLine} />
-            <div className={styles.messageLine} />
-            <div className={styles.messageLine} />
-            <div className={styles.messageLine} />
-          </div>
+          {notes
+            ? <div className={styles.messageText}>{notes}</div>
+            : <div className={styles.messageLines}>
+                <div className={styles.messageLine} />
+                <div className={styles.messageLine} />
+                <div className={styles.messageLine} />
+                <div className={styles.messageLine} />
+              </div>
+          }
         </div>
 
         <div className={styles.madeWith}>Pressed with care by Tape Deck</div>

@@ -828,6 +828,14 @@
   opacity: 0.45;
 }
 
+.messageText {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: #2a1810;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+}
+
 .madeWith {
   font-family: 'Space Mono', monospace;
   font-size: 0.5rem;

@@ -20,6 +20,7 @@ export default function App() {
     label: '',
     youtubeUrl: '',
     color: 'black',
+    notes: '',
     recipientName: '',
     address: { line1: '', line2: '', city: '', state: '', zip: '', country: 'US' },
   })

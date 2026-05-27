@@ -58,6 +58,10 @@ export default function CreateScreen({ order, onChange, onNext }) {
     onChange({ label: e.target.value.slice(0, 40) })
   }
 
+  function handleNotesChange(e) {
+    onChange({ notes: e.target.value.slice(0, 200) })
+  }
+
   const canProceed = order.label.trim() && order.youtubeUrl.trim() && isValidYouTubeUrl(order.youtubeUrl)
 
   return (
@@ -98,6 +102,19 @@ export default function CreateScreen({ order, onChange, onNext }) {
           {order.youtubeUrl && !urlError && (
             <div className={styles.valid}>✓ Valid YouTube URL</div>
           )}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Personal Note <span className={styles.optional}>(optional)</span></label>
+          <textarea
+            className={styles.textarea}
+            placeholder="A message for the recipient — printed on the back of the card"
+            value={order.notes}
+            onChange={handleNotesChange}
+            maxLength={200}
+            rows={3}
+          />
+          <div className={styles.hint}>{order.notes.length} / 200</div>
         </div>
 
         <div className={styles.field}>
@@ -149,6 +166,7 @@ export default function CreateScreen({ order, onChange, onNext }) {
                   recipientName={order.recipientName}
                   address={order.address}
                   qrDataUrl={qrDataUrl}
+                  notes={order.notes}
                 />
             }
           </div>

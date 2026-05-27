@@ -15,7 +15,7 @@ const FROM_ADDRESS = {
 
 export async function sendPostcard(metadata) {
   const {
-    label, youtubeUrl, color,
+    label, youtubeUrl, color, notes,
     recipientName,
     addressLine1, addressLine2,
     addressCity, addressState, addressZip, addressCountry,
@@ -39,7 +39,8 @@ export async function sendPostcard(metadata) {
       zip:     addressZip,
       country: addressCountry || 'US',
     },
-    qrDataUrl
+    qrDataUrl,
+    notes || ''
   )
 
   // Split recipient name into first/last

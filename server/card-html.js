@@ -353,7 +353,7 @@ export function generateFrontHtml(label, color) {
 </html>`
 }
 
-export function generateBackHtml(recipientName, address, qrDataUrl) {
+export function generateBackHtml(recipientName, address, qrDataUrl, notes) {
   const addrLine = [address.city, address.state, address.zip].filter(Boolean).join(', ')
   const qrContent = qrDataUrl
     ? `<img src="${qrDataUrl}" width="96" height="96" alt="QR code">`
@@ -434,6 +434,10 @@ export function generateBackHtml(recipientName, address, qrDataUrl) {
     background: repeating-linear-gradient(90deg,
       #b89860 0px, #b89860 4px, transparent 4px, transparent 8px);
     opacity: 0.45;
+  }
+  .message-text {
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    color: #2a1810; line-height: 1.7; letter-spacing: 0.02em;
   }
   .made-with {
     font-family: 'Space Mono', monospace; font-size: 7px;
@@ -519,12 +523,15 @@ export function generateBackHtml(recipientName, address, qrDataUrl) {
     </div>
     <div class="message-area">
       <div class="message-label">A note for you —</div>
-      <div class="message-lines">
-        <div class="message-line"></div>
-        <div class="message-line"></div>
-        <div class="message-line"></div>
-        <div class="message-line"></div>
-      </div>
+      ${notes
+        ? `<div class="message-text">${escapeHtml(notes)}</div>`
+        : `<div class="message-lines">
+            <div class="message-line"></div>
+            <div class="message-line"></div>
+            <div class="message-line"></div>
+            <div class="message-line"></div>
+          </div>`
+      }
     </div>
     <div class="made-with">Pressed with care by Tape Deck</div>
   </div>
