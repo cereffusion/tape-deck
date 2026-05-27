@@ -11,14 +11,16 @@ const COLORS = [
   { id: 'pink',   label: 'Pastel Pink',   hex: 'radial-gradient(circle at 30% 30%, #fcd6dc, #c88090 80%)' },
   { id: 'purple', label: 'Purple',        hex: 'radial-gradient(circle at 30% 30%, #a070ec, #3a0c70 80%)' },
   { id: 'sage',   label: 'Sage Green',    hex: 'radial-gradient(circle at 30% 30%, #b6c4a4, #4e5a3c 80%)' },
+  { id: 'clear',  label: 'Clear / Smoke', hex: 'radial-gradient(circle at 25% 25%, rgba(180,255,255,0.7), transparent 55%), linear-gradient(135deg, #ff2898 0%, #5a18a0 60%, #00d4e0 100%)' },
 ]
 
 const BG_COLORS = [
-  { id: 'brown', label: 'Warm Brown', hex: 'radial-gradient(circle at 30% 30%, #3a2410, #14100a 80%)' },
-  { id: 'black', label: 'Black',      hex: 'radial-gradient(circle at 30% 30%, #1c1c1c, #050505 80%)' },
-  { id: 'blue',  label: 'Light Blue', hex: 'radial-gradient(circle at 30% 30%, #d4dfeb, #98aecc 80%)' },
-  { id: 'white', label: 'White',      hex: 'radial-gradient(circle at 30% 30%, #ffffff, #ebe2cf 80%)' },
-  { id: 'gray',  label: 'Light Gray', hex: 'radial-gradient(circle at 30% 30%, #c8c4be, #989088 80%)' },
+  { id: 'brown',  label: 'Warm Brown',    hex: 'radial-gradient(circle at 30% 30%, #3a2410, #14100a 80%)' },
+  { id: 'black',  label: 'Black',         hex: 'radial-gradient(circle at 30% 30%, #1c1c1c, #050505 80%)' },
+  { id: 'blue',   label: 'Light Blue',    hex: 'radial-gradient(circle at 30% 30%, #d4dfeb, #98aecc 80%)' },
+  { id: 'white',  label: 'White',         hex: 'radial-gradient(circle at 30% 30%, #ffffff, #ebe2cf 80%)' },
+  { id: 'gray',   label: 'Light Gray',    hex: 'radial-gradient(circle at 30% 30%, #c8c4be, #989088 80%)' },
+  { id: 'sunset', label: 'Pink → Purple', hex: 'linear-gradient(135deg, #ffb4d2 0%, #5a1a8c 100%)' },
 ]
 
 const YT_RE = /^(https?:\/\/)?(www\.)?(youtube\.com\/(playlist|watch)|youtu\.be\/)/

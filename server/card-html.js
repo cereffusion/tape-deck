@@ -142,6 +142,26 @@ const COLORS = {
     tapeWound:    '#2a3820',
     shellText:    'rgba(180,200,160,0.22)',
   },
+  clear: {
+    body:         'rgba(255,40,160,0.22)',
+    bodyDark:     'rgba(120,10,90,0.42)',
+    bodyLight:    'rgba(120,240,255,0.32)',
+    shellEdge:    'rgba(120,10,90,0.6)',
+    labelBg:      '#ffe8f4',
+    labelBg2:     '#f4c0e0',
+    labelTxt:     '#1a0830',
+    labelStripe:  '#1a0830',
+    labelStripe2: '#00e0d4',
+    labelAccent:  '#00e0d4',
+    reelBg:       '#1a0a2a',
+    reelHub:      '#d020a0',
+    reelTeeth:    '#0a0418',
+    screwColor:   '#c0c8d4',
+    screwDark:    '#4a4858',
+    tapeColor:    'rgba(20,8,30,0.78)',
+    tapeWound:    '#6a1880',
+    shellText:    'rgba(120,10,90,0.6)',
+  },
 }
 
 function getLabelFontSize(text) {
@@ -157,12 +177,16 @@ const BG_VARIANTS = {
   black: { bg1:'#1a1a1a', bg2:'#050505', bg3:'#0e0e0e', bg4:'#050505', accent:'rgba(220,200,160,0.32)', accentSoft:'rgba(220,200,160,0.10)', reg:'#6a5840' },
   blue:  { bg1:'#d4dfeb', bg2:'#a8bdd0', bg3:'#c4d2e0', bg4:'#aabccf', accent:'rgba(40,60,100,0.55)',  accentSoft:'rgba(40,60,100,0.18)',  reg:'#4a6080' },
   white: { bg1:'#ffffff', bg2:'#f0e8d6', bg3:'#f8f1e2', bg4:'#ece2cc', accent:'rgba(120,70,30,0.6)',   accentSoft:'rgba(120,70,30,0.18)',  reg:'#8a6432' },
-  gray:  { bg1:'#c8c4be', bg2:'#989088', bg3:'#b4ada4', bg4:'#9a928a', accent:'rgba(50,40,30,0.6)',    accentSoft:'rgba(50,40,30,0.18)',   reg:'#3a3028' },
+  gray:   { bg1:'#c8c4be', bg2:'#989088', bg3:'#b4ada4', bg4:'#9a928a', accent:'rgba(50,40,30,0.6)',     accentSoft:'rgba(50,40,30,0.18)',   reg:'#3a3028' },
+  sunset: { bg1:'#ffb4d2', bg2:'#5a1a8c', bg3:'#f48ac4', bg4:'#4a1080', accent:'rgba(255,230,200,0.55)', accentSoft:'rgba(255,230,200,0.18)', reg:'rgba(255,240,220,0.45)' },
 }
 
 export function generateFrontHtml(label, color, cassetteId, orderNum, cardBg) {
   const c = COLORS[color] || COLORS.black
   const bg = BG_VARIANTS[cardBg] || BG_VARIANTS.brown
+  const isClear = color === 'clear'
+  const clearShell = isClear ? `box-shadow: inset 0 1px 0 rgba(180,255,255,0.45), inset 0 -2px 0 rgba(120,10,90,0.4), inset 1px 0 0 rgba(180,255,255,0.2), inset -1px 0 0 rgba(120,10,90,0.3), 0 0 0 1px rgba(120,10,90,0.55);` : ''
+  const clearWindow = isClear ? `background: radial-gradient(ellipse 220px 60px at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 70%), rgba(30,10,40,0.55);` : ''
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -234,6 +258,7 @@ export function generateFrontHtml(label, color, cassetteId, orderNum, cardBg) {
       inset 0 1px 0 rgba(255,255,255,0.12),
       inset 0 -2px 0 rgba(0,0,0,0.6),
       0 0 0 1px ${c.shellEdge};
+    ${clearShell}
   }
 
   .cassette-top {
@@ -315,6 +340,7 @@ export function generateFrontHtml(label, color, cassetteId, orderNum, cardBg) {
     padding: 0 30px;
     box-shadow: inset 0 3px 8px rgba(0,0,0,0.85);
     flex-shrink: 0; overflow: hidden;
+    ${clearWindow}
   }
 
   .reel {

@@ -162,6 +162,29 @@ const COLOR_VARS = {
     '--shell-text':    'rgba(28,40,18,0.32)',
     '--hairline':      'rgba(28,40,18,0.4)',
   },
+  clear: {
+    '--body':          'rgba(255,40,160,0.22)',
+    '--body-dark':     'rgba(120,10,90,0.42)',
+    '--body-light':    'rgba(120,240,255,0.32)',
+    '--body-shine':    'rgba(180,255,255,0.55)',
+    '--body-wear':     'rgba(255,20,140,0.18)',
+    '--shell-edge':    'rgba(120,10,90,0.6)',
+    '--label-bg':      '#ffe8f4',
+    '--label-bg2':     '#f4c0e0',
+    '--label-txt':     '#1a0830',
+    '--label-stripe':  '#1a0830',
+    '--label-stripe2': '#00e0d4',
+    '--label-accent':  '#00e0d4',
+    '--reel-bg':       '#1a0a2a',
+    '--reel-hub':      '#d020a0',
+    '--reel-teeth':    '#0a0418',
+    '--screw-color':   '#c0c8d4',
+    '--screw-dark':    '#4a4858',
+    '--tape-color':    'rgba(20,8,30,0.78)',
+    '--tape-wound':    '#6a1880',
+    '--shell-text':    'rgba(120,10,90,0.6)',
+    '--hairline':      'rgba(0,0,0,0.35)',
+  },
 }
 
 const BG_CLASSES = {
@@ -170,6 +193,7 @@ const BG_CLASSES = {
   blue:   styles.bgBlue,
   white:  styles.bgWhite,
   gray:   styles.bgGray,
+  sunset: styles.bgSunset,
 }
 
 function getLabelFontSize(text) {
@@ -203,7 +227,10 @@ export function CardFront({ label, color, cassetteId, orderNum, cardBg }) {
       <div className={styles.frontCat}>TD-0420</div>
 
       <div className={styles.cassetteWrap}>
-        <div className={`${styles.cassette} ${styles[color] || styles.black}`} style={vars}>
+        <div
+          className={[styles.cassette, color === 'clear' ? styles.cassetteClear : ''].filter(Boolean).join(' ')}
+          style={vars}
+        >
 
           <div className={styles.cassetteTop}>
             <div className={styles.screw} />
@@ -239,7 +266,7 @@ export function CardFront({ label, color, cassetteId, orderNum, cardBg }) {
             </div>
           </div>
 
-          <div className={styles.cassetteWindow}>
+          <div className={[styles.cassetteWindow, color === 'clear' ? styles.cassetteWindowClear : ''].filter(Boolean).join(' ')}>
             <Reel />
             <Reel />
             <div className={styles.headSlot}>
