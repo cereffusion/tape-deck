@@ -223,9 +223,6 @@ export function CardFront({ label, color, cassetteId, orderNum, cardBg }) {
       <div className={`${styles.regMark} ${styles.regBl}`} />
       <div className={`${styles.regMark} ${styles.regBr}`} />
 
-      <div className={styles.frontStock}>CHROME · TYPE II</div>
-      <div className={styles.frontCat}>TD-0420</div>
-
       <div className={styles.cassetteWrap}>
         <div
           className={[styles.cassette, color === 'clear' ? styles.cassetteClear : ''].filter(Boolean).join(' ')}
@@ -357,19 +354,15 @@ export function CardBack({ recipientName, address, qrDataUrl, notes, senderName 
           <div className={styles.cancelBot}>Side A · Play</div>
         </div>
 
-        <div>
-          <div className={styles.stampArea}>
-            <span className={styles.stampLabel}>Place<br />Stamp<br />Here</span>
+        <div className={styles.returnBlock}>
+          <div className={styles.returnLabel}>From</div>
+          <div className={styles.returnAddress}>
+            Mail-a-Mix<br />
+            5504 13th Ave<br />
+            Unit #214<br />
+            Brooklyn, NY 11219
           </div>
-          <div className={styles.returnBlock}>
-            <div className={styles.returnLabel}>From</div>
-            <div className={styles.returnAddress}>
-              Mail-a-Mix<br />
-              5504 13th Ave, Unit #214<br />
-              Brooklyn, NY 11219
-            </div>
-            <div className={styles.returnUrl}>mailamix.com</div>
-          </div>
+          <div className={styles.returnUrl}>mailamix.com</div>
         </div>
 
         <div className={styles.recipientBlock}>
