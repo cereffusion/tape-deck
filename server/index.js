@@ -132,6 +132,29 @@ app.get('/api/validate-youtube', async (req, res) => {
   }
 })
 
+// ── Retry PostGrid for a specific payment intent ─────────────
+// POST /api/retry-order  { "paymentIntentId": "pi_...", "adminSecret": "..." }
+app.post('/api/retry-order', async (req, res) => {
+  const { paymentIntentId, adminSecret } = req.body
+  if (adminSecret !== process.env.ADMIN_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  if (!paymentIntentId) {
+    return res.status(400).json({ error: 'paymentIntentId required' })
+  }
+  try {
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
+    if (pi.status !== 'succeeded') {
+      return res.status(400).json({ error: `Payment status is ${pi.status}, not succeeded` })
+    }
+    const result = await sendPostcard(pi.metadata)
+    res.json({ success: true, postcard: result })
+  } catch (err) {
+    console.error('retry-order error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── Minimal PostGrid connectivity test ──────────────────────
 app.post('/api/test-postgrid-minimal', async (req, res) => {
   try {
