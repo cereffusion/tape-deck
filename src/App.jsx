@@ -59,7 +59,7 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <span className={styles.logo}>Tape Deck</span>
+        <span className={styles.logo}>Mail-A-Mix</span>
         <div className={styles.steps}>
           {STEPS.map((s, i) => (
             <div
