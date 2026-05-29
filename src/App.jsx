@@ -5,6 +5,7 @@ import CreateScreen  from './components/CreateScreen.jsx'
 import AddressScreen from './components/AddressScreen.jsx'
 import PayScreen     from './components/PayScreen.jsx'
 import ConfirmScreen from './components/ConfirmScreen.jsx'
+import AdminScreen   from './components/AdminScreen.jsx'
 import styles from './App.module.css'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -50,6 +51,10 @@ export default function App() {
     } catch (err) {
       setPayError(err.message)
     }
+  }
+
+  if (window.location.pathname === '/admin') {
+    return <AdminScreen />
   }
 
   if (confirmed) {

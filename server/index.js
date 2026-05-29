@@ -2,7 +2,13 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
 import { sendPostcard } from './postgrid.js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+)
 
 const app  = express()
 const port = process.env.PORT || 3001
@@ -33,6 +39,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
       ...(email ? { receipt_email: email } : {}),
       metadata: {
         label, youtubeUrl, color, cardBg: cardBg || 'brown', notes: notes || '', senderName: senderName || '', cassetteId: cassetteId || '', orderNum: orderNum || '', recipientName,
+        customerEmail:  email || '',
         addressLine1:   address?.line1   || '',
         addressLine2:   address?.line2   || '',
         addressCity:    address?.city    || '',
@@ -80,6 +87,27 @@ app.post('/api/webhook', async (req, res) => {
         })
       } catch (writeErr) {
         console.error('PostGrid succeeded but Stripe write-back failed — postcardId:', postcard.id, writeErr.message)
+      }
+      try {
+        await supabase.from('orders').insert({
+          stripe_payment_id: pi.id,
+          cassette_label:    metadata.label,
+          cassette_color:    metadata.color,
+          card_bg:           metadata.cardBg,
+          from_name:         metadata.senderName,
+          note:              metadata.notes,
+          recipient_name:    metadata.recipientName,
+          address_line1:     metadata.addressLine1,
+          address_line2:     metadata.addressLine2,
+          city:              metadata.addressCity,
+          state:             metadata.addressState,
+          zip:               metadata.addressZip,
+          customer_email:    metadata.customerEmail,
+          postgrid_order_id: postcard.id,
+          postgrid_status:   postcard.status,
+        })
+      } catch (dbErr) {
+        console.error('Supabase insert failed:', dbErr.message)
       }
     } catch (err) {
       console.error('PostGrid failed:', err.message)
@@ -173,33 +201,17 @@ app.post('/api/retry-order', async (req, res) => {
   }
 })
 
-// ── Admin: reconcile Stripe vs PostGrid ─────────────────────
-// GET /api/admin/orders?adminSecret=...&limit=50
+// ── Admin: all orders from Supabase ─────────────────────────
 app.get('/api/admin/orders', async (req, res) => {
-  const { adminSecret, limit = '50' } = req.query
-  if (adminSecret !== process.env.ADMIN_SECRET) {
+  if (req.headers['x-admin-password'] !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
-  try {
-    const list = await stripe.paymentIntents.list({ limit: Math.min(Number(limit), 100) })
-    const orders = list.data
-      .filter(pi => pi.status === 'succeeded')
-      .map(pi => ({
-        id:            pi.id,
-        created:       new Date(pi.created * 1000).toISOString(),
-        amount:        pi.amount,
-        receiptEmail:  pi.receipt_email,
-        label:         pi.metadata.label,
-        recipient:     pi.metadata.recipientName,
-        postcardId:    pi.metadata.postcardId || null,
-        postcardStatus: pi.metadata.postcardStatus || null,
-        sent:          !!pi.metadata.postcardId,
-      }))
-    const gaps = orders.filter(o => !o.sent)
-    res.json({ total: orders.length, gaps: gaps.length, orders })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data)
 })
 
 // ── Minimal PostGrid connectivity test ──────────────────────

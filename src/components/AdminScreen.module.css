@@ -1,0 +1,194 @@
+.loginWrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f0f;
+}
+
+.loginBox {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 320px;
+}
+
+.loginLogo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  color: #f0a020;
+  letter-spacing: 0.08em;
+}
+
+.loginSub {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: #888;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.loginInput {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #f0e0c0;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.95rem;
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.loginInput:focus {
+  border-color: #f0a020;
+}
+
+.loginError {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.8rem;
+  color: #e85d04;
+  text-align: center;
+}
+
+.loginBtn {
+  background: #f0a020;
+  color: #0f0f0f;
+  border: none;
+  border-radius: 4px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  padding: 10px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.loginBtn:hover:not(:disabled) { opacity: 0.85; }
+.loginBtn:disabled { opacity: 0.5; cursor: default; }
+
+/* Dashboard */
+
+.dashboard {
+  min-height: 100vh;
+  background: #0f0f0f;
+  padding: 28px 32px;
+  box-sizing: border-box;
+}
+
+.dashHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 16px;
+}
+
+.dashLogo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  color: #f0a020;
+  letter-spacing: 0.08em;
+}
+
+.dashAdmin {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-left: 10px;
+}
+
+.dashCount {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.empty {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+  margin-top: 80px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  color: #d0c0a0;
+}
+
+.table th {
+  text-align: left;
+  color: #888;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  padding: 8px 12px;
+  border-bottom: 1px solid #2a2a2a;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #1e1e1e;
+  vertical-align: top;
+  max-width: 200px;
+}
+
+.table tr:hover td {
+  background: #161616;
+}
+
+.nowrap { white-space: nowrap; }
+
+.addr {
+  font-size: 0.72rem;
+  color: #a09080;
+  max-width: 180px;
+}
+
+.badge {
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.badgeYellow { background: rgba(240,160,32,0.18); color: #f0a020; }
+.badgeGreen  { background: rgba(60,200,80,0.15);  color: #4cd870; }
+.badgeRed    { background: rgba(232,93,4,0.18);   color: #e85d04; }
+
+.stripeLink {
+  color: #6090e8;
+  text-decoration: none;
+  font-size: 0.72rem;
+}
+
+.stripeLink:hover { text-decoration: underline; }
