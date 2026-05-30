@@ -4,6 +4,7 @@ import cors from 'cors'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendPostcard } from './postgrid.js'
+import { sendMailedEmail } from './email.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -21,7 +22,8 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }))
-app.use('/api/webhook', express.raw({ type: 'application/json' }))
+app.use('/api/webhook',          express.raw({ type: 'application/json' }))
+app.use('/api/postgrid-webhook', express.raw({ type: 'application/json' }))
 app.use(express.json())
 
 // ── Create PaymentIntent ─────────────────────────────────────
@@ -199,6 +201,67 @@ app.post('/api/retry-order', async (req, res) => {
     console.error('retry-order error:', err.message)
     res.status(500).json({ error: err.message })
   }
+})
+
+// ── PostGrid Webhook ─────────────────────────────────────────
+app.post('/api/postgrid-webhook', async (req, res) => {
+  let event
+  try {
+    event = JSON.parse(req.body.toString())
+  } catch {
+    return res.status(400).send('Invalid JSON')
+  }
+
+  console.log('PostGrid webhook received:', JSON.stringify(event).slice(0, 300))
+
+  // PostGrid event shape: { type: 'postcard.updated', data: { object: { id, status, ... } } }
+  // Also handle flat shape just in case: { id, status }
+  const obj      = event?.data?.object ?? event?.data ?? event
+  const postcardId = obj?.id
+  const status     = (obj?.status || '').toLowerCase()
+
+  if (!postcardId) {
+    return res.status(200).json({ ignored: true, reason: 'no postcard id' })
+  }
+
+  // Update Supabase status
+  const { data: rows, error: fetchErr } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('postgrid_order_id', postcardId)
+    .limit(1)
+
+  if (fetchErr) {
+    console.error('Supabase fetch error on PostGrid webhook:', fetchErr.message)
+    return res.status(200).json({ received: true })
+  }
+
+  const order = rows?.[0]
+
+  if (order) {
+    await supabase
+      .from('orders')
+      .update({ postgrid_status: status })
+      .eq('postgrid_order_id', postcardId)
+
+    if (status === 'mailed' && order.customer_email) {
+      try {
+        await sendMailedEmail({
+          to:            order.customer_email,
+          recipientName: order.recipient_name,
+          senderName:    order.from_name,
+          label:         order.cassette_label,
+        })
+        console.log('Mailed email sent to:', order.customer_email)
+      } catch (emailErr) {
+        console.error('Resend email failed:', emailErr.message)
+      }
+    }
+  } else {
+    console.warn('PostGrid webhook: no Supabase order found for postcardId:', postcardId)
+  }
+
+  res.json({ received: true })
 })
 
 // ── Admin: all orders from Supabase ─────────────────────────
