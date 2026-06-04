@@ -4,12 +4,12 @@ import { generateFrontHtml, generateBackHtml } from './card-html.js'
 const POSTGRID_API = 'https://api.postgrid.com/print-mail/v1'
 
 const FROM_ADDRESS = {
-  firstName:       'Tape',
-  lastName:        'Deck',
-  addressLine1:    '123 Cassette Lane',
-  city:            'San Francisco',
-  provinceOrState: 'CA',
-  postalOrZip:     '94107',
+  firstName:       'Mail-a-Mix',
+  lastName:        '',
+  addressLine1:    '5504 13th Ave Unit #214',
+  city:            'Brooklyn',
+  provinceOrState: 'NY',
+  postalOrZip:     '11219',
   countryCode:     'US',
 }
 
