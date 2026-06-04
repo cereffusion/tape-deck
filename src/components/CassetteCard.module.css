@@ -828,8 +828,8 @@
   padding: 50px 30px 30px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 28px;
+  justify-content: flex-start;
+  gap: 24px;
   position: relative;
   z-index: 1;
 }
@@ -931,10 +931,8 @@
 }
 
 .messageArea {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   gap: 10px;
   padding-bottom: 4px;
   margin-right: -20px;

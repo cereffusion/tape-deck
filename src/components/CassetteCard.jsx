@@ -319,6 +319,19 @@ export function CardBack({ recipientName, address, qrDataUrl, notes, senderName 
           <div className={styles.senderName}>{senderName || 'A friend'}</div>
         </div>
 
+        <div className={styles.messageArea}>
+          <div className={styles.messageLabel}>A note for you —</div>
+          {notes
+            ? <div className={styles.messageText}>{notes}</div>
+            : <div className={styles.messageLines}>
+                <div className={styles.messageLine} />
+                <div className={styles.messageLine} />
+                <div className={styles.messageLine} />
+                <div className={styles.messageLine} />
+              </div>
+          }
+        </div>
+
         <div className={styles.qrArea}>
           <div className={styles.qrBox}>
             {qrDataUrl
@@ -331,19 +344,6 @@ export function CardBack({ recipientName, address, qrDataUrl, notes, senderName 
             <div className={styles.scanLabel}>to Play<br />the Tape</div>
             <div className={styles.scanSub}>Opens your playlist<br />on YouTube</div>
           </div>
-        </div>
-
-        <div className={styles.messageArea}>
-          <div className={styles.messageLabel}>A note for you —</div>
-          {notes
-            ? <div className={styles.messageText}>{notes}</div>
-            : <div className={styles.messageLines}>
-                <div className={styles.messageLine} />
-                <div className={styles.messageLine} />
-                <div className={styles.messageLine} />
-                <div className={styles.messageLine} />
-              </div>
-          }
         </div>
       </div>
 

@@ -513,7 +513,7 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
 
   .card-back-left {
     width: 50%; padding: 50px 30px 30px;
-    display: flex; flex-direction: column; justify-content: center; gap: 28px;
+    display: flex; flex-direction: column; justify-content: flex-start; gap: 24px;
     position: relative; z-index: 1;
   }
   .sender-block {
@@ -541,7 +541,7 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
   .scan-label { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.06em; color: #2a1810; line-height: 0.95; }
   .scan-sub { font-family: 'Space Mono', monospace; font-size: 8px; color: #5a4830; letter-spacing: 0.06em; line-height: 1.6; margin-top: 4px; }
 
-  .message-area { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; margin-right: -20px; }
+  .message-area { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; margin-right: -20px; padding-right: 0; }
   .message-label { font-family: 'Space Mono', monospace; font-size: 7px; letter-spacing: 0.22em; color: #8a6830; text-transform: uppercase; }
   .notes-text { font-family: 'Space Mono', monospace; font-size: 10px; line-height: 1.6; color: #2a1810; white-space: pre-wrap; min-height: 44px; }
   .message-lines { display: flex; flex-direction: column; gap: 14px; min-height: 44px; justify-content: flex-end; }
@@ -588,15 +588,6 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
       <div class="sender-name">${escapeHtml(senderName || 'A friend')}</div>
     </div>
 
-    <div class="qr-area">
-      <div class="qr-box">${qrContent}</div>
-      <div class="qr-meta">
-        <div class="scan-arrow">&#9654; SCAN</div>
-        <div class="scan-label">to Play<br>the Tape</div>
-        <div class="scan-sub">Opens your playlist<br>on YouTube</div>
-      </div>
-    </div>
-
     <div class="message-area">
       <div class="message-label">A note for you &mdash;</div>
       ${notes
@@ -607,6 +598,15 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
             <div class="message-line"></div>
           </div>`
       }
+    </div>
+
+    <div class="qr-area">
+      <div class="qr-box">${qrContent}</div>
+      <div class="qr-meta">
+        <div class="scan-arrow">&#9654; SCAN</div>
+        <div class="scan-label">to Play<br>the Tape</div>
+        <div class="scan-sub">Opens your playlist<br>on YouTube</div>
+      </div>
     </div>
   </div>
 
