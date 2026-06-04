@@ -937,6 +937,7 @@
   justify-content: flex-end;
   gap: 10px;
   padding-bottom: 4px;
+  margin-right: -20px;
 }
 
 .messageLabel {

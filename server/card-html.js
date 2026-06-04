@@ -541,7 +541,7 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
   .scan-label { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.06em; color: #2a1810; line-height: 0.95; }
   .scan-sub { font-family: 'Space Mono', monospace; font-size: 8px; color: #5a4830; letter-spacing: 0.06em; line-height: 1.6; margin-top: 4px; }
 
-  .message-area { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
+  .message-area { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; margin-right: -20px; }
   .message-label { font-family: 'Space Mono', monospace; font-size: 7px; letter-spacing: 0.22em; color: #8a6830; text-transform: uppercase; }
   .notes-text { font-family: 'Space Mono', monospace; font-size: 10px; line-height: 1.6; color: #2a1810; white-space: pre-wrap; min-height: 44px; }
   .message-lines { display: flex; flex-direction: column; gap: 14px; min-height: 44px; justify-content: flex-end; }
