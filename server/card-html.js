@@ -549,7 +549,7 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
 
   .card-back-right {
     width: 50%; padding: 50px 32px 30px;
-    display: flex; flex-direction: column; justify-content: center; gap: 36px;
+    display: flex; flex-direction: column; justify-content: flex-start; gap: 36px;
     position: relative; z-index: 1;
   }
   .cancel-mark {

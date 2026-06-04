@@ -992,7 +992,7 @@
   padding: 50px 32px 30px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 36px;
   position: relative;
   z-index: 1;
