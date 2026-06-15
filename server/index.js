@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import crypto from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import Stripe from 'stripe'
@@ -6,9 +7,12 @@ import { createClient } from '@supabase/supabase-js'
 import { sendPostcard } from './postgrid.js'
 import { sendMailedEmail } from './email.js'
 
+// Prefer the service-role key (server-side only — bypasses RLS) so the orders
+// table can be locked down to deny the anon role. Falls back to anon until the
+// service-role key is configured, so this is a safe no-op until then.
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 )
 
 const app  = express()
@@ -22,12 +26,36 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }))
+
+// Lightweight per-IP rate limiting (in-memory). NOTE: on serverless each instance
+// keeps its own counter, so this is best-effort — it blunts floods from a single
+// source against a warm instance but is not a hard global guarantee. Back it with
+// a shared store (e.g. Upstash Redis) for strict limits.
+function rateLimit({ windowMs, max }) {
+  const hits = new Map()
+  return (req, res, next) => {
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown'
+    const now = Date.now()
+    const recent = (hits.get(ip) || []).filter(t => now - t < windowMs)
+    if (recent.length >= max) {
+      res.setHeader('Retry-After', Math.ceil(windowMs / 1000))
+      return res.status(429).json({ error: 'Too many requests — please slow down.' })
+    }
+    recent.push(now)
+    hits.set(ip, recent)
+    if (hits.size > 5000) for (const [k, v] of hits) if (!v.some(t => now - t < windowMs)) hits.delete(k)
+    next()
+  }
+}
+const paymentLimiter = rateLimit({ windowMs: 10 * 60_000, max: 20 })
+const youtubeLimiter = rateLimit({ windowMs: 10 * 60_000, max: 40 })
+
 app.use('/api/webhook',          express.raw({ type: 'application/json' }))
-app.use('/api/postgrid-webhook', express.raw({ type: 'application/json' }))
+app.use('/api/postgrid-webhook', express.raw({ type: () => true }))
 app.use(express.json())
 
 // ── Create PaymentIntent ─────────────────────────────────────
-app.post('/api/create-payment-intent', async (req, res) => {
+app.post('/api/create-payment-intent', paymentLimiter, async (req, res) => {
   const { label, youtubeUrl, color, cardBg, notes, senderName, email, cassetteId, orderNum, recipientName, address, senderAddress } = req.body
 
   if (!label || !youtubeUrl || !recipientName) {
@@ -119,33 +147,8 @@ app.post('/api/webhook', async (req, res) => {
   res.json({ received: true })
 })
 
-// ── Test endpoint: fire PostGrid without webhook ─────────────
-// Use this during dev: POST /api/test-send with the order body
-app.post('/api/test-send', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(403).json({ error: 'Not available in production' })
-  }
-
-  const { label, youtubeUrl, color, recipientName, address } = req.body
-  try {
-    const result = await sendPostcard({
-      label, youtubeUrl, color, recipientName,
-      addressLine1:   address?.line1   || '',
-      addressLine2:   address?.line2   || '',
-      addressCity:    address?.city    || '',
-      addressState:   address?.state   || '',
-      addressZip:     address?.zip     || '',
-      addressCountry: address?.country || 'US',
-    })
-    res.json({ success: true, postcard: result })
-  } catch (err) {
-    console.error('Test send error:', err.message)
-    res.status(500).json({ error: err.message })
-  }
-})
-
 // ── Validate YouTube URL ─────────────────────────────────────
-app.get('/api/validate-youtube', async (req, res) => {
+app.get('/api/validate-youtube', youtubeLimiter, async (req, res) => {
   const { url } = req.query
   if (!url) return res.status(400).json({ valid: false, error: 'No URL provided' })
 
@@ -177,11 +180,20 @@ app.get('/api/validate-youtube', async (req, res) => {
   }
 })
 
+// Constant-time admin check. Returns false if the expected secret is unset/empty,
+// so a missing env var can never silently become an auth bypass.
+function adminOk(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string' || !provided || !expected) return false
+  const a = crypto.createHash('sha256').update(provided).digest()
+  const b = crypto.createHash('sha256').update(expected).digest()
+  return crypto.timingSafeEqual(a, b)
+}
+
 // ── Retry PostGrid for a specific payment intent ─────────────
 // POST /api/retry-order  { "paymentIntentId": "pi_...", "adminSecret": "..." }
 app.post('/api/retry-order', async (req, res) => {
   const { paymentIntentId, adminSecret, addressOverride } = req.body
-  if (adminSecret !== process.env.ADMIN_SECRET) {
+  if (!adminOk(adminSecret, process.env.ADMIN_SECRET)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
   if (!paymentIntentId) {
@@ -203,14 +215,30 @@ app.post('/api/retry-order', async (req, res) => {
   }
 })
 
+// Verify a PostGrid webhook JWT (HS256, signed with the webhook's secret) and
+// return its decoded payload, or null if the signature is missing/invalid.
+function verifyPostgridJwt(token, secret) {
+  if (!token || !secret) return null
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  const [h, p, sig] = parts
+  const expected = crypto.createHmac('sha256', secret).update(`${h}.${p}`).digest('base64url')
+  const sigBuf = Buffer.from(sig)
+  const expBuf = Buffer.from(expected)
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null
+  try { return JSON.parse(Buffer.from(p, 'base64url').toString('utf8')) } catch { return null }
+}
+
 // ── PostGrid Webhook ─────────────────────────────────────────
+// PostGrid sends a signed JWT (payloadFormat: jwt). Verify it before trusting.
 app.post('/api/postgrid-webhook', async (req, res) => {
-  let event
-  try {
-    event = JSON.parse(req.body.toString())
-  } catch {
-    return res.status(400).send('Invalid JSON')
+  const secret = process.env.POSTGRID_WEBHOOK_SECRET
+  if (!secret) {
+    console.error('POSTGRID_WEBHOOK_SECRET not set — rejecting webhook')
+    return res.status(500).send('Webhook not configured')
   }
+  const event = verifyPostgridJwt(req.body?.toString('utf8').trim(), secret)
+  if (!event) return res.status(401).send('Invalid signature')
 
   console.log('PostGrid webhook received:', JSON.stringify(event).slice(0, 300))
 
@@ -264,9 +292,21 @@ app.post('/api/postgrid-webhook', async (req, res) => {
   res.json({ received: true })
 })
 
+// ── GET /api/health ──────────────────────────────────────────
+// Runs a trivial DB query so the free-tier Supabase project registers activity
+// and doesn't auto-pause after 7 days idle. Pinged daily by a scheduled job.
+app.get('/api/health', async (req, res) => {
+  try {
+    const { error } = await supabase.from('orders').select('stripe_payment_id').limit(1)
+    res.json({ ok: !error, db: error ? 'down' : 'up' })
+  } catch {
+    res.status(500).json({ ok: false, db: 'down' })
+  }
+})
+
 // ── Admin: all orders from Supabase ─────────────────────────
 app.get('/api/admin/orders', async (req, res) => {
-  if (req.headers['x-admin-password'] !== process.env.ADMIN_PASSWORD) {
+  if (!adminOk(req.headers['x-admin-password'], process.env.ADMIN_PASSWORD)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
   const { data, error } = await supabase
@@ -275,47 +315,6 @@ app.get('/api/admin/orders', async (req, res) => {
     .order('created_at', { ascending: false })
   if (error) return res.status(500).json({ error: error.message })
   res.json(data)
-})
-
-// ── Minimal PostGrid connectivity test ──────────────────────
-app.post('/api/test-postgrid-minimal', async (req, res) => {
-  try {
-    const response = await fetch('https://api.postgrid.com/print-mail/v1/postcards', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.POSTGRID_API_KEY,
-      },
-      body: JSON.stringify({
-        size: '6x4',
-        frontHTML: '<html><body style="background:black;color:white;"><h1>Hello</h1></body></html>',
-        backHTML:  '<html><body><p>Back of card</p></body></html>',
-        to: {
-          firstName:       'Jake',
-          lastName:        'Morrison',
-          addressLine1:    '456 Main St',
-          city:            'Brooklyn',
-          provinceOrState: 'NY',
-          postalOrZip:     '11201',
-          countryCode:     'US',
-        },
-        from: {
-          firstName:       'Mail-a-Mix',
-          lastName:        '',
-          addressLine1:    '5504 13th Ave Unit #214',
-          city:            'Brooklyn',
-          provinceOrState: 'NY',
-          postalOrZip:     '11219',
-          countryCode:     'US',
-        },
-      }),
-    })
-    const data = await response.json()
-    console.log('PostGrid minimal test response:', JSON.stringify(data).slice(0, 300))
-    res.json(data)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
 })
 
 if (process.env.VERCEL !== '1') {
