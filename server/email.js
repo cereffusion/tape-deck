@@ -1,6 +1,12 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy-init so a missing RESEND_API_KEY doesn't throw at import time and crash
+// the entire serverless function — it should only degrade email, not the app.
+let _resend
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 export async function sendMailedEmail({ to, recipientName, senderName, label }) {
   const displayRecipient = recipientName || 'your recipient'
@@ -81,10 +87,96 @@ export async function sendMailedEmail({ to, recipientName, senderName, label }) 
 </body>
 </html>`
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from:    'Mail-A-Mix <hello@mailamix.com>',
     to,
     subject: `Your mixtape card is on its way ▶`,
+    html,
+  })
+
+  if (error) throw new Error(`Resend error: ${JSON.stringify(error)}`)
+  return data
+}
+
+export async function sendSigilMailedEmail({ to, recipientName }) {
+  const displayRecipient = recipientName || 'Your recipient'
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Your sigil is on its way</title>
+</head>
+<body style="margin:0;padding:0;background:#0b0a10;font-family:Georgia,'Times New Roman',serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0b0a10;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:0 0 32px 0;text-align:center;">
+              <div style="font-size:22px;letter-spacing:0.35em;color:#c9a84c;text-transform:uppercase;">
+                Sigil Forge
+              </div>
+              <div style="font-size:11px;letter-spacing:0.22em;color:#6f6a7e;margin-top:6px;font-style:italic;">
+                speak your intent, receive its mark
+              </div>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#15131e;border:1px solid #2c2840;border-radius:8px;padding:36px 40px;">
+
+              <div style="text-align:center;margin-bottom:26px;font-size:26px;color:#c9a84c;">
+                &#10022;
+              </div>
+
+              <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.22em;color:#6f6a7e;text-transform:uppercase;text-align:center;">
+                The mark has been sent
+              </p>
+              <h1 style="margin:0 0 24px 0;font-size:21px;color:#e8e2d0;letter-spacing:0.04em;line-height:1.4;font-weight:normal;text-align:center;">
+                Your sigil is on its way.
+              </h1>
+
+              <p style="margin:0 0 20px 0;font-size:14px;line-height:1.75;color:#a89e8c;">
+                ${escapeHtml(displayRecipient)} should receive the card in
+                <strong style="color:#e8e2d0;font-weight:normal;">3&ndash;5 business days</strong> &mdash;
+                a real postcard, the mark on the front, your note on the back.
+                The intention it carries stays unspoken, as it should.
+              </p>
+
+              <div style="border-top:1px dashed #2c2840;margin:26px 0;"></div>
+
+              <p style="margin:0;font-size:12px;line-height:1.7;color:#6f6a7e;font-style:italic;">
+                Forged &amp; mailed by Sigil Forge. Tell them to keep it somewhere it will be seen.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 0 0 0;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#3a3550;letter-spacing:0.18em;text-transform:uppercase;">
+                Sigil Forge &nbsp;&#10022;&nbsp; Brooklyn, NY
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+  const { data, error } = await getResend().emails.send({
+    from:    'Sigil Forge <hello@mailamix.com>',
+    to,
+    subject: `Your sigil is on its way ✦`,
     html,
   })
 
