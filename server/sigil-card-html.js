@@ -54,11 +54,15 @@ export function generateSigilFrontHtml(svg) {
 </html>`
 }
 
-// All content is confined to the top ~45% of the card. PostGrid reserves the
-// lower region of the back for the USPS address label and cancels any order
-// whose artwork overlaps it ("Content found overlapping address region") —
-// so the bottom stays completely blank and PostGrid prints the recipient
-// address itself. No recipient block of our own.
+// Per PostGrid's US 6x4 design guideline (us_intl_postcard_6inx4in.pdf), the
+// back reserves two no-ink regions that trigger "Content found overlapping
+// address region" cancellations:
+//   - Address & Indicia Zone: the ENTIRE right 40% (2.4in wide, full height)
+//   - USPS Barcode Zone: bottom 4.75in x 0.625in strip
+// At 864x576 (144dpi) that means: keep everything left of x=518 and above
+// y=486. All content below sits in the left 60%, with margin to spare.
+// PostGrid prints the recipient AND return address in the right zone itself,
+// so the card art carries neither.
 export function generateSigilBackHtml({ note, senderName }) {
   return `<!DOCTYPE html>
 <html>
@@ -72,71 +76,53 @@ export function generateSigilBackHtml({ note, senderName }) {
     width: 864px; height: 576px; position: relative;
     background: radial-gradient(ellipse at 50% 50%, #fdf6e5 0%, #f4ebd5 100%);
   }
+  /* Everything lives in this box: left of PostGrid's right-40% address zone
+     (x < 518) and above the barcode strip (y < 486), with buffer. */
+  .safe {
+    position: absolute; top: 28px; left: 34px; width: 440px; height: 400px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
   .masthead {
-    position: absolute; top: 18px; left: 0; right: 0; text-align: center;
-    font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase; color: #8a7848;
+    font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: #8a7848;
+    border-bottom: 1px dashed rgba(160,140,90,0.5); padding-bottom: 10px;
   }
-  .content {
-    position: absolute; top: 46px; left: 0; right: 0; height: 214px;
-    display: flex;
-  }
-  .content::after {
-    content: ''; position: absolute; top: 4px; bottom: 0; left: 58%; width: 1px;
-    background: repeating-linear-gradient(180deg, #b8a878 0px, #b8a878 2px, transparent 2px, transparent 5px);
-  }
-  .col-left {
-    width: 58%; padding: 6px 30px 0 34px;
-    display: flex; flex-direction: column; gap: 14px;
-  }
-  .from-line { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #8a7848;
-    border-bottom: 1px dashed rgba(160,140,90,0.5); padding-bottom: 7px; }
-  .from-line b { color: #2a2010; font-weight: normal; font-size: 14px; letter-spacing: 0.08em; text-transform: none; }
-  .note-label { font-size: 8.5px; letter-spacing: 0.24em; text-transform: uppercase; color: #8a7848; margin-bottom: 6px; }
-  .note-text { font-size: 12px; line-height: 1.55; color: #2a2010; font-style: italic; white-space: pre-wrap; }
-  .note-lines { display: flex; flex-direction: column; gap: 15px; padding-top: 4px; }
+  .from-line { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #8a7848; }
+  .from-line b { display: block; color: #2a2010; font-weight: normal; font-size: 16px; letter-spacing: 0.08em; text-transform: none; margin-top: 4px; }
+  .note-label { font-size: 8.5px; letter-spacing: 0.24em; text-transform: uppercase; color: #8a7848; margin-bottom: 7px; }
+  .note-text { font-size: 12.5px; line-height: 1.6; color: #2a2010; font-style: italic; white-space: pre-wrap; }
+  .note-lines { display: flex; flex-direction: column; gap: 16px; padding-top: 4px; }
   .note-line { height: 1px; background: repeating-linear-gradient(90deg, #b8a878 0px, #b8a878 4px, transparent 4px, transparent 8px); opacity: 0.5; }
-  .col-right {
-    width: 42%; padding: 6px 110px 0 26px;
-    display: flex; flex-direction: column; gap: 16px;
-  }
+  .footer-row { margin-top: auto; display: flex; align-items: flex-end; gap: 16px; }
+  .keep-note { flex: 1; font-size: 9px; color: #a08c58; font-style: italic; line-height: 1.6; }
   .cancel-mark {
-    position: absolute; top: 6px; right: 20px;
-    width: 78px; height: 78px; border-radius: 50%;
+    width: 74px; height: 74px; border-radius: 50%; flex-shrink: 0;
     border: 1.5px solid rgba(138,120,72,0.4);
     display: flex; align-items: center; justify-content: center; flex-direction: column;
     transform: rotate(-11deg); opacity: 0.6;
   }
-  .cancel-mark .t { font-size: 8px; letter-spacing: 0.16em; color: rgba(138,120,72,0.8); text-transform: uppercase; }
-  .cancel-mark .m { font-size: 15px; color: rgba(138,120,72,0.85); margin: 2px 0; }
-  .return-label { font-size: 8px; letter-spacing: 0.24em; color: #a08c58; text-transform: uppercase; margin-bottom: 4px; }
-  .return-address { font-size: 9.5px; color: #6a5a36; line-height: 1.6; }
-  .keep-note { font-size: 9px; color: #a08c58; font-style: italic; line-height: 1.55; }
+  .cancel-mark .t { font-size: 7.5px; letter-spacing: 0.14em; color: rgba(138,120,72,0.8); text-transform: uppercase; }
+  .cancel-mark .m { font-size: 14px; color: rgba(138,120,72,0.85); margin: 2px 0; }
 </style>
 </head>
 <body>
 <div class="card-back">
-  <div class="masthead">&#10022; A Sigil, Forged &amp; Sent &#10022;</div>
+  <div class="safe">
+    <div class="masthead">&#10022; A Sigil, Forged &amp; Sent</div>
 
-  <div class="content">
-    <div class="col-left">
-      <div class="from-line">Forged for you by <b>${escapeHtml(senderName || 'someone who holds you in mind')}</b></div>
-      <div>
-        <div class="note-label">A note &mdash;</div>
-        ${note
-          ? `<div class="note-text">${escapeHtml(note)}</div>`
-          : `<div class="note-lines"><div class="note-line"></div><div class="note-line"></div><div class="note-line"></div></div>`
-        }
-      </div>
+    <div class="from-line">Forged for you by <b>${escapeHtml(senderName || 'someone who holds you in mind')}</b></div>
+
+    <div>
+      <div class="note-label">A note &mdash;</div>
+      ${note
+        ? `<div class="note-text">${escapeHtml(note)}</div>`
+        : `<div class="note-lines"><div class="note-line"></div><div class="note-line"></div><div class="note-line"></div></div>`
+      }
     </div>
 
-    <div class="col-right">
+    <div class="footer-row">
+      <div class="keep-note">The mark on the front carries an intention set for you.
+Keep it somewhere it will be seen &mdash; a mirror, a wall, a wallet &mdash; and let it work.</div>
       <div class="cancel-mark"><div class="t">Sigil Forge</div><div class="m">&#10022;</div><div class="t">Charged</div></div>
-      <div>
-        <div class="return-label">From</div>
-        <div class="return-address">Mail-a-Mix<br>5504 13th Ave, Unit #214<br>Brooklyn, NY 11219</div>
-      </div>
-      <div class="keep-note">The mark on the front carries an intention.
-Keep it somewhere it will be seen.</div>
     </div>
   </div>
 </div>
