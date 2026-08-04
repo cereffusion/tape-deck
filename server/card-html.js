@@ -494,19 +494,15 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
     width: 864px; height: 576px; position: relative;
     background: radial-gradient(ellipse at 50% 50%, #fdf6e5 0%, #f4ebd5 100%);
   }
-  /* Grain clipped to the printable area: right 346px and bottom 90px stay clean */
-  .card-back::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 346px; bottom: 90px;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch' seed='4'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.3  0 0 0 0 0.15  0 0 0 0.6 0'/></filter><rect width='300' height='300' filter='url(%23n)' opacity='0.4'/></svg>");
-    mix-blend-mode: multiply; opacity: 0.25; pointer-events: none;
-    -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent 100%);
-    mask-image: linear-gradient(90deg, #000 82%, transparent 100%);
-  }
+  /* NOTE: no grain texture on the back — PostGrid's content checker flags the
+     SVG noise overlay as overlapping the address region even when clipped
+     well inside the printable area (verified by A/B test, Aug 2026). The
+     front keeps its grain; fronts have no reserved zones. */
 
-  /* All content confined here: left of x=518, above y=486, with buffer */
+  /* Content box matching the sigil card's proven-passing geometry */
   .safe {
-    position: absolute; top: 26px; left: 30px; width: 452px; height: 418px;
-    display: flex; flex-direction: column; gap: 20px; z-index: 1;
+    position: absolute; top: 28px; left: 34px; width: 436px; height: 398px;
+    display: flex; flex-direction: column; gap: 18px; z-index: 1;
   }
 
   .postcard-masthead {
