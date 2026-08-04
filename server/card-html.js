@@ -471,8 +471,12 @@ export function generateFrontHtml(label, color, cassetteId, orderNum, cardBg) {
 </html>`
 }
 
+// Per PostGrid's US 6x4 guideline: the back's right 40% (address & indicia)
+// and the bottom 4.75in x 0.625in barcode strip must carry no artwork or ink,
+// or the order is cancelled ("Content found overlapping address region").
+// All content — including the grain texture — stays inside the left 60%,
+// above the strip. PostGrid prints recipient + return address in its zone.
 export function generateBackHtml(recipientName, address, qrDataUrl, notes, senderName) {
-  const addrLine = [address.city, address.state, address.zip].filter(Boolean).join(', ')
   const qrContent = qrDataUrl
     ? `<img src="${qrDataUrl}" width="96" height="96" alt="QR code">`
     : ''
@@ -487,38 +491,53 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
   html, body { width: 864px; height: 576px; overflow: hidden; }
 
   .card-back {
-    width: 864px; height: 576px; display: flex; position: relative;
+    width: 864px; height: 576px; position: relative;
     background: radial-gradient(ellipse at 50% 50%, #fdf6e5 0%, #f4ebd5 100%);
   }
+  /* Grain clipped to the printable area: right 346px and bottom 90px stay clean */
   .card-back::before {
-    content: ''; position: absolute; inset: 0;
+    content: ''; position: absolute; top: 0; left: 0; right: 346px; bottom: 90px;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch' seed='4'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.3  0 0 0 0 0.15  0 0 0 0.6 0'/></filter><rect width='300' height='300' filter='url(%23n)' opacity='0.4'/></svg>");
-    mix-blend-mode: multiply; opacity: 0.35; pointer-events: none;
+    mix-blend-mode: multiply; opacity: 0.25; pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 82%, transparent 100%);
   }
-  .card-back::after {
-    content: ''; position: absolute; top: 50px; bottom: 50px; left: 50%; width: 1px;
-    background: repeating-linear-gradient(180deg, #b89860 0px, #b89860 2px, transparent 2px, transparent 5px);
-    opacity: 0.5;
+
+  /* All content confined here: left of x=518, above y=486, with buffer */
+  .safe {
+    position: absolute; top: 26px; left: 30px; width: 452px; height: 418px;
+    display: flex; flex-direction: column; gap: 20px; z-index: 1;
   }
 
   .postcard-masthead {
-    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
     font-family: 'Bebas Neue', sans-serif; font-size: 10px;
-    letter-spacing: 0.42em; color: #8a6830; white-space: nowrap; z-index: 2; padding-left: 0.42em;
+    letter-spacing: 0.42em; color: #8a6830; white-space: nowrap;
+    border-bottom: 1px dashed rgba(184,152,96,0.45); padding-bottom: 10px;
   }
   .postcard-masthead .dot {
     display: inline-block; width: 3px; height: 3px; background: #c64a08;
     border-radius: 50%; vertical-align: middle; margin: 0 10px 3px;
   }
 
-  .card-back-left {
-    width: 50%; padding: 50px 30px 30px;
-    display: flex; flex-direction: column; justify-content: flex-start; gap: 24px;
-    position: relative; z-index: 1;
+  .cancel-mark {
+    position: absolute; top: 30px; right: 6px;
+    width: 74px; height: 74px; border-radius: 50%;
+    border: 1.5px solid rgba(198,74,8,0.35);
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    transform: rotate(-12deg); opacity: 0.55; pointer-events: none; z-index: 0;
   }
+  .cancel-mark::before {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 50%; border: 1px dashed rgba(198,74,8,0.4);
+  }
+  .cancel-mark .top { font-family: 'Bebas Neue', sans-serif; font-size: 8px; letter-spacing: 0.18em; color: rgba(198,74,8,0.7); padding-left: 0.18em; }
+  .cancel-mark .mid { font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: rgba(198,74,8,0.75); line-height: 1; margin: 2px 0; }
+  .cancel-mark .bot { font-family: 'Space Mono', monospace; font-size: 5.5px; letter-spacing: 0.1em; color: rgba(198,74,8,0.6); text-transform: uppercase; }
+
   .sender-block {
     display: flex; align-items: baseline; gap: 10px;
     padding: 8px 0 4px; border-bottom: 1px dashed rgba(184,152,96,0.45);
+    margin-right: 92px; /* clear of the cancel mark */
   }
   .sender-label {
     font-family: 'Space Mono', monospace; font-size: 7px;
@@ -541,48 +560,25 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
   .scan-label { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.06em; color: #2a1810; line-height: 0.95; }
   .scan-sub { font-family: 'Space Mono', monospace; font-size: 8px; color: #5a4830; letter-spacing: 0.06em; line-height: 1.6; margin-top: 4px; }
 
-  .message-area { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; margin-right: -20px; padding-right: 0; }
+  .message-area { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
   .message-label { font-family: 'Space Mono', monospace; font-size: 7px; letter-spacing: 0.22em; color: #8a6830; text-transform: uppercase; }
   .notes-text { font-family: 'Space Mono', monospace; font-size: 10px; line-height: 1.6; color: #2a1810; white-space: pre-wrap; min-height: 44px; }
   .message-lines { display: flex; flex-direction: column; gap: 14px; min-height: 44px; justify-content: flex-end; }
   .message-line { height: 1px; background: repeating-linear-gradient(90deg, #b89860 0px, #b89860 4px, transparent 4px, transparent 8px); opacity: 0.45; }
 
-  .card-back-right {
-    width: 50%; padding: 50px 32px 30px;
-    display: flex; flex-direction: column; justify-content: flex-start; gap: 36px;
-    position: relative; z-index: 1;
-  }
-  .cancel-mark {
-    position: absolute; top: 28px; right: 22px;
-    width: 86px; height: 86px; border-radius: 50%;
-    border: 1.5px solid rgba(198,74,8,0.35);
-    display: flex; align-items: center; justify-content: center; flex-direction: column;
-    transform: rotate(-12deg); opacity: 0.55; pointer-events: none; z-index: 0;
-  }
-  .cancel-mark::before {
-    content: ''; position: absolute; inset: 5px;
-    border-radius: 50%; border: 1px dashed rgba(198,74,8,0.4);
-  }
-  .cancel-mark .top { font-family: 'Bebas Neue', sans-serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(198,74,8,0.7); padding-left: 0.18em; }
-  .cancel-mark .mid { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: rgba(198,74,8,0.75); line-height: 1; margin: 2px 0; }
-  .cancel-mark .bot { font-family: 'Space Mono', monospace; font-size: 6px; letter-spacing: 0.1em; color: rgba(198,74,8,0.6); text-transform: uppercase; }
-
-  .return-block { margin-top: 0; }
-  .return-label { font-family: 'Space Mono', monospace; font-size: 6px; letter-spacing: 0.22em; color: #a88848; text-transform: uppercase; margin-bottom: 4px; }
-  .return-address { font-family: 'Space Mono', monospace; font-size: 8px; color: #6a5236; line-height: 1.7; }
-  .return-url { font-family: 'Space Mono', monospace; font-size: 8px; color: #c64a08; letter-spacing: 0.06em; margin-top: 4px; }
-
-  .recipient-block { padding: 12px 14px; border-left: 3px solid #c64a08; margin-left: 8px; margin-right: 8px; }
-  .to-label { font-family: 'Space Mono', monospace; font-size: 7px; letter-spacing: 0.22em; color: #c64a08; text-transform: uppercase; margin-bottom: 6px; }
-  .recipient-name { font-family: 'Archivo Black', sans-serif; font-size: 14px; color: #1c1208; margin-bottom: 3px; }
-  .recipient-address { font-family: 'Space Mono', monospace; font-size: 10px; color: #2a1810; line-height: 1.7; }
 </style>
 </head>
 <body>
 <div class="card-back">
-  <div class="postcard-masthead">POSTCARD<span class="dot"></span>MAIL-A-MIX<span class="dot"></span>PLAY ME</div>
+  <div class="safe">
+    <div class="postcard-masthead">POSTCARD<span class="dot"></span>MAIL-A-MIX<span class="dot"></span>PLAY ME</div>
 
-  <div class="card-back-left">
+    <div class="cancel-mark">
+      <div class="top">MAIL-A-MIX</div>
+      <div class="mid">2026</div>
+      <div class="bot">Side A &middot; Play</div>
+    </div>
+
     <div class="sender-block">
       <div class="sender-label">A mixtape from</div>
       <div class="sender-name">${escapeHtml(senderName || 'A friend')}</div>
@@ -606,29 +602,6 @@ export function generateBackHtml(recipientName, address, qrDataUrl, notes, sende
         <div class="scan-arrow">&#9654; SCAN</div>
         <div class="scan-label">to Play<br>the Tape</div>
         <div class="scan-sub">Opens your playlist<br>on YouTube</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card-back-right">
-    <div class="cancel-mark">
-      <div class="top">MAIL-A-MIX</div>
-      <div class="mid">2026</div>
-      <div class="bot">Side A &middot; Play</div>
-    </div>
-
-    <div class="return-block">
-      <div class="return-label">From</div>
-      <div class="return-address">Mail-a-Mix<br>5504 13th Ave<br>Unit #214<br>Brooklyn, NY 11219</div>
-      <div class="return-url">mailamix.com</div>
-    </div>
-
-    <div class="recipient-block">
-      <div class="to-label">&#9654; Deliver to</div>
-      <div class="recipient-name">${escapeHtml(recipientName)}</div>
-      <div class="recipient-address">
-        ${escapeHtml(address.line1 || '')}${address.line2 ? '<br>' + escapeHtml(address.line2) : ''}<br>
-        ${escapeHtml(addrLine)}
       </div>
     </div>
   </div>
