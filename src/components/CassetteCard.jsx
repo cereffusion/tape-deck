@@ -309,11 +309,17 @@ export function CardBack({ recipientName, address, qrDataUrl, notes, senderName 
   const addrLine = [address?.city, address?.state, address?.zip].filter(Boolean).join(', ')
   return (
     <div className={styles.cardBack}>
-      <div className={styles.postcardMasthead}>
-        POSTCARD<span className={styles.dot} />MAIL-A-MIX<span className={styles.dot} />PLAY ME
-      </div>
+      <div className={styles.safeArea}>
+        <div className={styles.postcardMasthead}>
+          POSTCARD<span className={styles.dot} />MAIL-A-MIX<span className={styles.dot} />PLAY ME
+        </div>
 
-      <div className={styles.cardBackLeft}>
+        <div className={styles.cancelMark}>
+          <div className={styles.cancelTop}>MAIL-A-MIX</div>
+          <div className={styles.cancelMid}>2026</div>
+          <div className={styles.cancelBot}>Side A · Play</div>
+        </div>
+
         <div className={styles.senderBlock}>
           <div className={styles.senderLabel}>A mixtape from</div>
           <div className={styles.senderName}>{senderName || 'A friend'}</div>
@@ -347,33 +353,13 @@ export function CardBack({ recipientName, address, qrDataUrl, notes, senderName 
         </div>
       </div>
 
-      <div className={styles.cardBackRight}>
-        <div className={styles.cancelMark}>
-          <div className={styles.cancelTop}>MAIL-A-MIX</div>
-          <div className={styles.cancelMid}>2026</div>
-          <div className={styles.cancelBot}>Side A · Play</div>
+      <div className={styles.postalArea}>
+        <div className={styles.postalLabel}>
+          {recipientName || 'Recipient Name'}<br />
+          {address?.line1 || '123 Main Street'}{address?.line2 ? `, ${address.line2}` : ''}<br />
+          {addrLine || 'City, ST 00000'}
         </div>
-
-        <div className={styles.returnBlock}>
-          <div className={styles.returnLabel}>From</div>
-          <div className={styles.returnAddress}>
-            Mail-a-Mix<br />
-            5504 13th Ave<br />
-            Unit #214<br />
-            Brooklyn, NY 11219
-          </div>
-          <div className={styles.returnUrl}>mailamix.com</div>
-        </div>
-
-        <div className={styles.recipientBlock}>
-          <div className={styles.toLabel}>▶ Deliver to</div>
-          <div className={styles.recipientName}>{recipientName || 'Recipient Name'}</div>
-          <div className={styles.recipientAddress}>
-            {address?.line1 || '123 Main Street'}<br />
-            {address?.line2 && <>{address.line2}<br /></>}
-            {addrLine || 'City, ST 00000'}
-          </div>
-        </div>
+        <div className={styles.postalHint}>address &amp; postage<br />printed by USPS</div>
       </div>
     </div>
   )
