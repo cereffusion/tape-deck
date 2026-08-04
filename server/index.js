@@ -348,6 +348,46 @@ app.post('/api/retry-order', async (req, res) => {
   }
 })
 
+// ── Retry a sigil order (e.g. after a PostGrid cancellation) ─
+// POST /api/retry-sigil-order  { "sigilOrderId": "...", "adminSecret": "..." }
+app.post('/api/retry-sigil-order', async (req, res) => {
+  const { sigilOrderId, adminSecret } = req.body
+  if (!adminOk(adminSecret, process.env.ADMIN_SECRET)) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  if (!sigilOrderId) return res.status(400).json({ error: 'sigilOrderId required' })
+  try {
+    const { data: row, error } = await supabase
+      .from('sigil_orders').select('*').eq('id', sigilOrderId).single()
+    if (error || !row) return res.status(404).json({ error: 'sigil order not found' })
+
+    const address = {
+      line1: row.address_line1, line2: row.address_line2,
+      city: row.city, state: row.state, zip: row.zip,
+    }
+    const postcard = await sendSigilPostcard({
+      frontHtml: generateSigilFrontHtml(row.svg),
+      backHtml:  generateSigilBackHtml({ note: row.note, senderName: row.sender_name }),
+      recipientName: row.recipient_name,
+      address,
+    })
+
+    await supabase.from('sigil_orders').update({
+      status: 'sent',
+      postgrid_order_id: postcard.id,
+      postgrid_status:   postcard.status,
+    }).eq('id', sigilOrderId)
+    await supabase.from('orders')
+      .update({ postgrid_order_id: postcard.id, postgrid_status: postcard.status })
+      .eq('stripe_payment_id', row.stripe_payment_id)
+
+    res.json({ success: true, postcard: { id: postcard.id, status: postcard.status } })
+  } catch (err) {
+    console.error('retry-sigil-order error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Verify a PostGrid webhook JWT (HS256, signed with the webhook's secret) and
 // return its decoded payload, or null if the signature is missing/invalid.
 function verifyPostgridJwt(token, secret) {
