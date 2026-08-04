@@ -4,7 +4,8 @@ import express from 'express'
 import cors from 'cors'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { sendPostcard } from './postgrid.js'
+import { sendPostcard, sendSigilPostcard } from './postgrid.js'
+import { sanitizeSvg, generateSigilFrontHtml, generateSigilBackHtml } from './sigil-card-html.js'
 import { sendMailedEmail } from './email.js'
 
 // Prefer the service-role key (server-side only — bypasses RLS) so the orders
@@ -25,7 +26,9 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }))
+// Reflect any origin: the sigil-app frontend lives on its own domain, and CORS
+// is not the security boundary for these public endpoints anyway.
+app.use(cors({ origin: true }))
 
 // Lightweight per-IP rate limiting (in-memory). NOTE: on serverless each instance
 // keeps its own counter, so this is best-effort — it blunts floods from a single
@@ -52,6 +55,7 @@ const youtubeLimiter = rateLimit({ windowMs: 10 * 60_000, max: 40 })
 
 app.use('/api/webhook',          express.raw({ type: 'application/json' }))
 app.use('/api/postgrid-webhook', express.raw({ type: () => true }))
+app.use('/api/sigil-checkout',   express.json({ limit: '400kb' })) // sigil SVG rides in the body
 app.use(express.json())
 
 // ── Create PaymentIntent ─────────────────────────────────────
@@ -92,6 +96,68 @@ app.post('/api/create-payment-intent', paymentLimiter, async (req, res) => {
   }
 })
 
+// ── Sigil Forge: checkout for a mailed sigil postcard ────────
+// Stores the sigil + recipient in Supabase, then hands off to Stripe's
+// hosted Checkout page. The webhook fires PostGrid after payment.
+app.post('/api/sigil-checkout', paymentLimiter, async (req, res) => {
+  const { svg, email, senderName, note, recipientName, address } = req.body || {}
+
+  const cleanSvg = sanitizeSvg(svg)
+  if (!cleanSvg) return res.status(400).json({ error: 'Invalid sigil image' })
+  if (!recipientName?.trim() || !address?.line1 || !address?.city || !address?.state || !address?.zip) {
+    return res.status(400).json({ error: 'Missing recipient address fields' })
+  }
+
+  try {
+    const { data: row, error: dbErr } = await supabase
+      .from('sigil_orders')
+      .insert({
+        svg:            cleanSvg,
+        customer_email: email || null,
+        sender_name:    senderName || null,
+        note:           note || null,
+        recipient_name: recipientName.trim(),
+        address_line1:  address.line1,
+        address_line2:  address.line2 || null,
+        city:           address.city,
+        state:          address.state,
+        zip:            address.zip,
+        status:         'pending_payment',
+      })
+      .select('id')
+      .single()
+    if (dbErr) throw new Error(dbErr.message)
+
+    const origin = req.headers.origin || 'https://mailamix.com'
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency:    'usd',
+          unit_amount: 800,
+          product_data: {
+            name:        'Mailed Sigil Postcard',
+            description: 'Your sigil, printed and mailed as a real 6x4 postcard',
+          },
+        },
+        quantity: 1,
+      }],
+      ...(email ? { customer_email: email } : {}),
+      payment_intent_data: {
+        ...(email ? { receipt_email: email } : {}),
+        metadata: { type: 'sigil', sigilOrderId: row.id },
+      },
+      success_url: `${origin}/?mailed=1`,
+      cancel_url:  `${origin}/`,
+    })
+
+    res.json({ url: session.url })
+  } catch (err) {
+    console.error('sigil-checkout error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── Stripe Webhook ───────────────────────────────────────────
 app.post('/api/webhook', async (req, res) => {
   const sig    = req.headers['stripe-signature']
@@ -105,7 +171,9 @@ app.post('/api/webhook', async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`)
   }
 
-  if (event.type === 'payment_intent.succeeded') {
+  if (event.type === 'payment_intent.succeeded' && event.data.object.metadata?.type === 'sigil') {
+    await handleSigilPaid(event.data.object)
+  } else if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object
     const metadata = pi.metadata
     console.log('Payment succeeded — firing PostGrid for:', metadata.label)
@@ -146,6 +214,71 @@ app.post('/api/webhook', async (req, res) => {
 
   res.json({ received: true })
 })
+
+// Fulfil a paid Sigil Forge order: pull the stored sigil, render the card,
+// fire PostGrid, and mirror the order into the main orders table so the
+// admin dashboard and the mailed-email flow pick it up.
+async function handleSigilPaid(pi) {
+  const orderId = pi.metadata.sigilOrderId
+  console.log('Sigil payment succeeded — order:', orderId)
+  try {
+    const { data: row, error } = await supabase
+      .from('sigil_orders').select('*').eq('id', orderId).single()
+    if (error || !row) throw new Error(`sigil order not found: ${orderId}`)
+    if (row.postgrid_order_id) return // webhook retry — already fulfilled
+
+    const address = {
+      line1: row.address_line1, line2: row.address_line2,
+      city: row.city, state: row.state, zip: row.zip,
+    }
+    const postcard = await sendSigilPostcard({
+      frontHtml: generateSigilFrontHtml(row.svg),
+      backHtml:  generateSigilBackHtml({
+        note: row.note, senderName: row.sender_name,
+        recipientName: row.recipient_name, address,
+      }),
+      recipientName: row.recipient_name,
+      address,
+    })
+
+    await supabase.from('sigil_orders').update({
+      status: 'sent',
+      stripe_payment_id: pi.id,
+      postgrid_order_id: postcard.id,
+      postgrid_status:   postcard.status,
+    }).eq('id', orderId)
+
+    try {
+      await supabase.from('orders').insert({
+        stripe_payment_id: pi.id,
+        cassette_label:    'SIGIL POSTCARD',
+        from_name:         row.sender_name,
+        note:              row.note,
+        recipient_name:    row.recipient_name,
+        address_line1:     row.address_line1,
+        address_line2:     row.address_line2,
+        city:              row.city,
+        state:             row.state,
+        zip:               row.zip,
+        customer_email:    row.customer_email,
+        postgrid_order_id: postcard.id,
+        postgrid_status:   postcard.status,
+      })
+    } catch (mirrorErr) {
+      console.error('Sigil order mirror to orders table failed:', mirrorErr.message)
+    }
+
+    try {
+      await stripe.paymentIntents.update(pi.id, {
+        metadata: { ...pi.metadata, postcardId: postcard.id, postcardStatus: postcard.status },
+      })
+    } catch (writeErr) {
+      console.error('Sigil Stripe write-back failed — postcardId:', postcard.id, writeErr.message)
+    }
+  } catch (err) {
+    console.error('Sigil order fulfilment failed:', err.message)
+  }
+}
 
 // ── Validate YouTube URL ─────────────────────────────────────
 app.get('/api/validate-youtube', youtubeLimiter, async (req, res) => {

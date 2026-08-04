@@ -99,3 +99,40 @@ export async function sendPostcard(metadata) {
   console.log('PostGrid postcard created:', data.id, '| status:', data.status)
   return data
 }
+
+// Sigil Forge orders: pre-rendered front/back HTML, always from the house address.
+export async function sendSigilPostcard({ frontHtml, backHtml, recipientName, address }) {
+  const nameParts = (recipientName || '').trim().split(/\s+/)
+  const firstName = nameParts[0] || 'Friend'
+  const lastName  = nameParts.slice(1).join(' ') || '.'
+
+  const res = await fetch(`${POSTGRID_API}/postcards`, {
+    method:  'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key':    process.env.POSTGRID_API_KEY,
+    },
+    body: JSON.stringify({
+      size:              '6x4',
+      addressStrictness: 'none',
+      frontHTML: frontHtml,
+      backHTML:  backHtml,
+      to: {
+        firstName,
+        lastName,
+        addressLine1:    address.line1,
+        addressLine2:    address.line2 || undefined,
+        city:            address.city,
+        provinceOrState: address.state,
+        postalOrZip:     address.zip,
+        countryCode:     address.country || 'US',
+      },
+      from: FROM_ADDRESS,
+    }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(`PostGrid error: ${JSON.stringify(data)}`)
+  console.log('PostGrid sigil postcard created:', data.id, '| status:', data.status)
+  return data
+}
