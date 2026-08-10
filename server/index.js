@@ -6,6 +6,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendPostcard, sendSigilPostcard } from './postgrid.js'
 import { sanitizeSvg, generateSigilFrontHtml, generateSigilBackHtml } from './sigil-card-html.js'
+import { sendGrimoireCodeEmail } from './email.js'
 
 // Prefer the service-role key (server-side only — bypasses RLS) so the orders
 // table can be locked down to deny the anon role. Falls back to anon until the
@@ -157,6 +158,76 @@ app.post('/api/sigil-checkout', paymentLimiter, async (req, res) => {
   }
 })
 
+// ── Grimoire: checkout, verify, restore ──────────────────────
+const GRIM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // no 0/O/1/I/L
+
+function makeGrimCode() {
+  const pick = n => Array.from(crypto.randomBytes(n)).map(b => GRIM_ALPHABET[b % GRIM_ALPHABET.length]).join('')
+  return `GRIM-${pick(4)}-${pick(4)}`
+}
+
+app.post('/api/grimoire-checkout', paymentLimiter, async (req, res) => {
+  const { email } = req.body || {}
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Email required — your unlock code is sent there' })
+  try {
+    const origin = req.headers.origin || 'https://mailamix.com'
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency:    'usd',
+          unit_amount: 499,
+          product_data: {
+            name:        'The Grimoire — Sigil Forge unlock',
+            description: 'Effect inks, servitor builder, sigil library. One-time unlock.',
+          },
+        },
+        quantity: 1,
+      }],
+      customer_email: email,
+      payment_intent_data: {
+        receipt_email: email,
+        metadata: { type: 'grimoire', grimEmail: email },
+      },
+      success_url: `${origin}/?grimoire=paid`,
+      cancel_url:  `${origin}/`,
+    })
+    res.json({ url: session.url })
+  } catch (err) {
+    console.error('grimoire-checkout error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/grimoire-verify', async (req, res) => {
+  const code = String(req.body?.code || '').trim().toUpperCase()
+  if (!code) return res.status(400).json({ valid: false, error: 'Code required' })
+  const { data: row, error } = await supabase
+    .from('grimoire_codes').select('*').eq('code', code).single()
+  if (error || !row) return res.status(404).json({ valid: false, error: 'That code was not recognized.' })
+  if (row.redemptions >= 5) {
+    return res.status(403).json({ valid: false, error: 'This code has been used on too many devices. Reply to your code email if this is a mistake.' })
+  }
+  await supabase.from('grimoire_codes')
+    .update({ redemptions: row.redemptions + 1 })
+    .eq('code', code)
+  res.json({ valid: true })
+})
+
+app.post('/api/grimoire-restore', paymentLimiter, async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase()
+  const neutral = { message: 'If a code exists for that email, it has been re-sent.' }
+  if (!email || !email.includes('@')) return res.json(neutral)
+  try {
+    const { data: rows } = await supabase
+      .from('grimoire_codes').select('code').eq('email', email).limit(1)
+    if (rows?.length) await sendGrimoireCodeEmail({ to: email, code: rows[0].code })
+  } catch (err) {
+    console.error('grimoire-restore error:', err.message)
+  }
+  res.json(neutral)
+})
+
 // ── Stripe Webhook ───────────────────────────────────────────
 app.post('/api/webhook', async (req, res) => {
   const sig    = req.headers['stripe-signature']
@@ -170,7 +241,9 @@ app.post('/api/webhook', async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`)
   }
 
-  if (event.type === 'payment_intent.succeeded' && event.data.object.metadata?.type === 'sigil') {
+  if (event.type === 'payment_intent.succeeded' && event.data.object.metadata?.type === 'grimoire') {
+    await handleGrimoirePaid(event.data.object)
+  } else if (event.type === 'payment_intent.succeeded' && event.data.object.metadata?.type === 'sigil') {
     await handleSigilPaid(event.data.object)
   } else if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object
@@ -213,6 +286,36 @@ app.post('/api/webhook', async (req, res) => {
 
   res.json({ received: true })
 })
+
+// Fulfil a Grimoire purchase: mint an unlock code, store it, email it.
+async function handleGrimoirePaid(pi) {
+  const email = (pi.metadata.grimEmail || pi.receipt_email || '').toLowerCase()
+  console.log('Grimoire payment succeeded for:', email)
+  try {
+    // idempotency: webhook retries must not mint duplicate codes
+    const { data: existing } = await supabase
+      .from('grimoire_codes').select('code').eq('stripe_payment_id', pi.id).limit(1)
+    if (existing?.length) return
+
+    const code = makeGrimCode()
+    const { error: insErr } = await supabase.from('grimoire_codes').insert({
+      code,
+      email,
+      stripe_payment_id: pi.id,
+      redemptions: 0,
+    })
+    if (insErr) throw new Error(insErr.message)
+
+    try {
+      await sendGrimoireCodeEmail({ to: email, code })
+      console.log('Grimoire code emailed to:', email)
+    } catch (emailErr) {
+      console.error('Grimoire code email failed — code is', code, 'for', email, '—', emailErr.message)
+    }
+  } catch (err) {
+    console.error('Grimoire fulfilment failed:', err.message)
+  }
+}
 
 // Fulfil a paid Sigil Forge order: pull the stored sigil, render the card,
 // fire PostGrid, and mirror the order into the main orders table so the

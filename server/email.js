@@ -184,6 +184,63 @@ export async function sendSigilMailedEmail({ to, recipientName }) {
   return data
 }
 
+export async function sendGrimoireCodeEmail({ to, code }) {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Your Grimoire unlock code</title>
+</head>
+<body style="margin:0;padding:0;background:#0b0a10;font-family:Georgia,'Times New Roman',serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0b0a10;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+          <tr>
+            <td style="padding:0 0 32px 0;text-align:center;">
+              <div style="font-size:22px;letter-spacing:0.35em;color:#c9a84c;text-transform:uppercase;">Sigil Forge</div>
+              <div style="font-size:11px;letter-spacing:0.22em;color:#6f6a7e;margin-top:6px;font-style:italic;">the grimoire opens</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#15131e;border:1px solid #2c2840;border-radius:8px;padding:36px 40px;text-align:center;">
+              <div style="font-size:26px;color:#c9a84c;margin-bottom:22px;">&#10022;</div>
+              <p style="margin:0 0 10px 0;font-size:12px;letter-spacing:0.22em;color:#6f6a7e;text-transform:uppercase;">Your unlock code</p>
+              <div style="font-size:26px;letter-spacing:0.14em;color:#e8e2d0;background:#0b0a10;border:1px dashed #c9a84c;border-radius:6px;padding:16px 10px;margin:0 0 24px 0;font-family:'Courier New',monospace;">
+                ${escapeHtml(code)}
+              </div>
+              <p style="margin:0;font-size:13px;line-height:1.75;color:#a89e8c;text-align:left;">
+                Enter this code on the Sigil Forge site (or any device) under
+                <strong style="color:#e8e2d0;font-weight:normal;">&ldquo;Already have a code?&rdquo;</strong>
+                to open the Grimoire &mdash; effect inks, the servitor builder, and your sigil library.
+                Keep this email; the code is your key.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 0 0 0;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#3a3550;letter-spacing:0.18em;text-transform:uppercase;">Sigil Forge &nbsp;&#10022;&nbsp; Brooklyn, NY</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+  const { data, error } = await getResend().emails.send({
+    from:    'Sigil Forge <hello@mailamix.com>',
+    to,
+    subject: `Your Grimoire unlock code ✦`,
+    html,
+  })
+
+  if (error) throw new Error(`Resend error: ${JSON.stringify(error)}`)
+  return data
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
