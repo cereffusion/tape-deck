@@ -6,7 +6,6 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendPostcard, sendSigilPostcard } from './postgrid.js'
 import { sanitizeSvg, generateSigilFrontHtml, generateSigilBackHtml } from './sigil-card-html.js'
-import { sendMailedEmail, sendSigilMailedEmail } from './email.js'
 
 // Prefer the service-role key (server-side only — bypasses RLS) so the orders
 // table can be locked down to deny the anon role. Falls back to anon until the
@@ -452,26 +451,8 @@ app.post('/api/postgrid-webhook', async (req, res) => {
         .eq('postgrid_order_id', postcardId)
     }
 
-    if (status === 'mailed' && order.customer_email) {
-      try {
-        if (order.cassette_label === 'SIGIL POSTCARD') {
-          await sendSigilMailedEmail({
-            to:            order.customer_email,
-            recipientName: order.recipient_name,
-          })
-        } else {
-          await sendMailedEmail({
-            to:            order.customer_email,
-            recipientName: order.recipient_name,
-            senderName:    order.from_name,
-            label:         order.cassette_label,
-          })
-        }
-        console.log('Mailed email sent to:', order.customer_email)
-      } catch (emailErr) {
-        console.error('Resend email failed:', emailErr.message)
-      }
-    }
+    // Note: no "mailed" notification email by choice — the card's arrival is
+    // the moment. server/email.js keeps the senders if that ever changes.
   } else {
     console.warn('PostGrid webhook: no Supabase order found for postcardId:', postcardId)
   }
