@@ -167,10 +167,12 @@ function makeGrimCode() {
 }
 
 app.post('/api/grimoire-checkout', paymentLimiter, async (req, res) => {
-  const { email } = req.body || {}
+  const { email, page } = req.body || {}
   if (!email || !email.includes('@')) return res.status(400).json({ error: 'Email required — your unlock code is sent there' })
   try {
     const origin = req.headers.origin || 'https://mailamix.com'
+    // send the buyer back to the page they left (whitelisted), not always the forge
+    const returnPage = page === '/servitor.html' ? '/servitor.html' : '/'
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [{
@@ -189,7 +191,7 @@ app.post('/api/grimoire-checkout', paymentLimiter, async (req, res) => {
         receipt_email: email,
         metadata: { type: 'grimoire', grimEmail: email },
       },
-      success_url: `${origin}/?grimoire=paid`,
+      success_url: `${origin}${returnPage}?grimoire=paid`,
       cancel_url:  `${origin}/`,
     })
     res.json({ url: session.url })
