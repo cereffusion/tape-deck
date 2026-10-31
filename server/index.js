@@ -181,7 +181,7 @@ app.post('/api/grimoire-checkout', paymentLimiter, async (req, res) => {
           unit_amount: 149,
           product_data: {
             name:        'The Grimoire — Sigil Forge unlock',
-            description: 'Eight effect inks for sigils and mailed cards. One-time unlock.',
+            description: 'Eighteen effect inks and three themes for Sigil Forge. One-time unlock.',
           },
         },
         quantity: 1,
