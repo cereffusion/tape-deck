@@ -213,7 +213,7 @@ export async function sendGrimoireCodeEmail({ to, code }) {
               <p style="margin:0;font-size:13px;line-height:1.75;color:#a89e8c;text-align:left;">
                 Enter this code on the Sigil Forge site (or any device) under
                 <strong style="color:#e8e2d0;font-weight:normal;">&ldquo;Already have a code?&rdquo;</strong>
-                to open the Grimoire &mdash; effect inks, the servitor builder, and your sigil library.
+                to open the Grimoire &mdash; eight effect inks for your sigils and mailed cards.
                 Keep this email; the code is your key.
               </p>
             </td>
