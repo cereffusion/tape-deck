@@ -247,7 +247,10 @@ app.post('/api/webhook', async (req, res) => {
     await handleGrimoirePaid(event.data.object)
   } else if (event.type === 'payment_intent.succeeded' && event.data.object.metadata?.type === 'sigil') {
     await handleSigilPaid(event.data.object)
-  } else if (event.type === 'payment_intent.succeeded') {
+  } else if (event.type === 'payment_intent.succeeded' &&
+             event.data.object.metadata?.youtubeUrl && event.data.object.metadata?.addressLine1) {
+    // Mixtape order. Every payment on the Stripe account reaches this webhook
+    // (FuturePhoto, tip jars, ...); only ones carrying mixtape fields get mailed.
     const pi = event.data.object
     const metadata = pi.metadata
     console.log('Payment succeeded — firing PostGrid for:', metadata.label)
