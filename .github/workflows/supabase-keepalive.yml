@@ -1,0 +1,22 @@
+# Keeps the free-tier Supabase project from auto-pausing. Independent of the
+# daily Vercel cron (vercel.json): if either one stops, the other still runs.
+# Note: GitHub suspends scheduled workflows after 60 days with no repo commits.
+name: Supabase keep-alive
+on:
+  schedule:
+    - cron: '17 */6 * * *'   # every 6 hours
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping /api/health (runs a real DB query)
+        run: |
+          for i in 1 2 3; do
+            body=$(curl -s -m 30 https://www.mailamix.com/api/health) && echo "$body"
+            echo "$body" | grep -q '"db":"up"' && exit 0
+            sleep 20
+          done
+          echo "Database did not respond as up" >&2
+          exit 1
