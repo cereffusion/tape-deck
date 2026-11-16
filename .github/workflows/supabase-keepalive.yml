@@ -11,12 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Ping /api/health (runs a real DB query)
+      - name: Ping each app's /api/health (each runs a real DB query)
         run: |
-          for i in 1 2 3; do
-            body=$(curl -s -m 30 https://www.mailamix.com/api/health) && echo "$body"
-            echo "$body" | grep -q '"db":"up"' && exit 0
-            sleep 20
+          fail=0
+          for url in https://www.mailamix.com/api/health https://www.futurephoto.app/api/health; do
+            ok=0
+            for i in 1 2 3; do
+              body=$(curl -s -m 30 "$url") && echo "$url -> $body"
+              if echo "$body" | grep -q '"db":"up"'; then ok=1; break; fi
+              sleep 20
+            done
+            [ $ok = 1 ] || { echo "$url did not report db up" >&2; fail=1; }
           done
-          echo "Database did not respond as up" >&2
-          exit 1
+          exit $fail
